@@ -175,7 +175,7 @@
     .bounce{ animation: bounceIn .28s ease-out; }
     .press{ animation: pressDown .28s ease-out; }
 
-    /* --- 新增：選中顏色提示（強烈） --- */
+    /* --- 選中顏色提示（強烈） --- */
     .cell.selected { box-shadow: inset 0 0 0 3px #888; }
     .piece.selected {
       border-width: 4px;
@@ -282,11 +282,6 @@
       <div class="controls">
         <span class="status">
           <span class="chip">
-            <span>模式：</span>
-            <button id="modePlace" class="btn primary">放置</button>
-            <button id="modeMove" class="btn">移動</button>
-          </span>
-          <span class="chip">
             <span>輪到：</span>
             <span class="dot" id="turnDot"></span>
             <span id="turnText"></span>
@@ -354,7 +349,7 @@
     </div>
 
     <!-- Footer -->
-    <div class="footer">設計：更似實體棋 UI · 無提示 PVP · 動畫：彈跳/壓住 · 任何回合可放置或移動</div>
+    <div class="footer">設計：更似實體棋 UI · 無提示 PVP · 動畫：彈跳/壓住 · 任何回合可放置或移動（自動判斷）</div>
 
     <!-- Toast -->
     <div id="toast" class="toast" aria-live="polite"></div>
@@ -363,7 +358,6 @@
   <script>
   (function(){
     // --- State ---
-    const players = ["blue","orange"];
     const sizeNames = {1:"小",2:"中",3:"大"};
     const winLines = [
       [0,1,2],[3,4,5],[6,7,8], // rows
@@ -375,17 +369,14 @@
       blue: {1:2,2:2,3:2},
       orange: {1:2,2:2,3:2}
     };
-    let current = "blue"; // default first
-    let mode = "place";   // "place" or "move"
-    let selectedSize = null; // for place
-    let selectedFrom = null; // index for move
+    let current = "blue";      // 現在輪到誰
+    let selectedSize = null;   // 托盤選擇的大小（表示放置意圖）
+    let selectedFrom = null;   // 準備移動的來源格 index
     let gameOver = false;
 
     // --- Elements ---
     const boardEl = document.getElementById("board");
     const toastEl = document.getElementById("toast");
-    const modePlaceBtn = document.getElementById("modePlace");
-    const modeMoveBtn  = document.getElementById("modeMove");
     const resetBtn     = document.getElementById("resetBtn");
     const swapFirstBtn = document.getElementById("swapFirstBtn");
     const turnDot      = document.getElementById("turnDot");
@@ -400,7 +391,7 @@
       boardEl.appendChild(c);
     }
 
-    // Tray selection
+    // Tray selection（直接點托盤選大小）
     document.querySelectorAll(".tray-btn").forEach(btn=>{
       btn.addEventListener("click", ()=>{
         if(gameOver) return;
@@ -412,31 +403,12 @@
           return;
         }
         selectedSize = size;
-        selectedFrom = null;
-        mode = "place";
-        updateModeButtons();
+        selectedFrom = null; // 清除移動選擇
+        // 托盤按鈕高亮
         document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("active"));
         btn.classList.add("active");
+        showToast(`已選擇：${playerLabel(player)} 的${sizeNames[size]}（點棋盤落子）`);
       });
-    });
-
-    // Mode buttons
-    modePlaceBtn.addEventListener("click", ()=>{
-      if(gameOver) return;
-      mode = "place";
-      selectedFrom = null;
-      updateModeButtons();
-      render();
-      showToast("模式：放置");
-    });
-    modeMoveBtn.addEventListener("click", ()=>{
-      if(gameOver) return;
-      mode = "move";
-      selectedSize = null;
-      clearTrayActive();
-      updateModeButtons();
-      render();
-      showToast("模式：移動（先點選你最上層棋子）");
     });
 
     // Reset & Swap first
@@ -465,7 +437,7 @@
         const cellEl = boardEl.children[i];
         const old = cellEl.querySelector(".piece");
         if(old) old.remove();
-        cellEl.classList.remove("selected"); // 清除格子選中
+        cellEl.classList.remove("selected"); // 清除格子選中視覺
 
         const top = topPiece(i);
         if(top){
@@ -502,10 +474,6 @@
       });
     }
 
-    function updateModeButtons(){
-      modePlaceBtn.classList.toggle("primary", mode==="place");
-      modeMoveBtn.classList.toggle("primary", mode==="move");
-    }
     function clearTrayActive(){
       document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("active"));
     }
@@ -516,23 +484,11 @@
 
       const tp = topPiece(index);
 
-      // ✅ 簡化移動：放置模式但未選大小，且點到自己最上層 → 自動進入移動模式並選中
-      if(mode==="place" && selectedSize===null && tp && tp.player===current){
-        mode = "move";
-        selectedFrom = index;
-        updateModeButtons();
-        render();
-        showToast(`已選：第 ${index+1} 格（${sizeNames[tp.size]}）→ 再點目標格`);
-        return;
-      }
-
-      if(mode==="place"){
-        if(selectedSize===null){
-          showToast("先喺托盤揀 大 / 中 / 小（或直接點你嘅棋子進入移動）");
-          return;
-        }
+      // 操作判斷：
+      // 1) 如已在托盤選了大小 → 嘗試放置
+      if(selectedSize !== null){
         if(!canPlace(current, selectedSize, index)){
-          showToast("呢步唔合法（不可覆蓋同色、不可覆同大小或較大）");
+          showToast("呢步唔合法（不可覆同色、不可覆同大小或較大）");
           return;
         }
         placePiece(current, selectedSize, index);
@@ -546,53 +502,57 @@
           return;
         }
         switchTurn();
+        return;
       }
-      else if(mode==="move"){
-        if(selectedFrom===null){
-          if(!tp || tp.player !== current){
-            showToast("只可選你自己最上層棋子");
-            return;
-          }
-          selectedFrom = index;
-          render();
-          showToast(`已選：第 ${index+1} 格（${sizeNames[tp.size]}）→ 再點目標格`);
-        }else{
-          const fromTop = topPiece(selectedFrom);
-          if(!fromTop || fromTop.player !== current){
-            selectedFrom = null;
-            render();
-            showToast("選擇失效，請重選");
-            return;
-          }
-          if(selectedFrom===index){
-            selectedFrom = null;
-            render();
-            showToast("已取消選擇");
-            return;
-          }
-          if(!canMove(current, fromTop.size, selectedFrom, index)){
-            showToast("移動唔合法（不可覆同色、不可覆同大小或較大）");
-            return;
-          }
-          movePiece(current, fromTop.size, selectedFrom, index);
-          selectedFrom = null;
 
-          if(checkWin(current)){
-            gameOver = true;
-            render();
-            setTimeout(()=>alert(`勝利！${playerLabel(current)} 連成一線！`), 10);
-            return;
-          }
-          switchTurn();
+      // 2) 未選大小 → 移動流程
+      // Step1: 未選 from → 點自己最上層棋子以選中
+      if(selectedFrom === null){
+        if(!tp || tp.player !== current){
+          showToast("只可選你自己最上層棋子（或去托盤揀大小落子）");
+          return;
         }
+        selectedFrom = index;
+        render(); // 顯示選中高亮
+        showToast(`已選：第 ${index+1} 格（${sizeNames[tp.size]}）→ 再點目標格`);
+        return;
       }
+
+      // Step2: 已有 from → 點目標格完成移動/取消
+      const fromTop = topPiece(selectedFrom);
+      if(!fromTop || fromTop.player !== current){
+        selectedFrom = null;
+        render();
+        showToast("選擇失效，請重選");
+        return;
+      }
+      if(selectedFrom === index){
+        selectedFrom = null;
+        render();
+        showToast("已取消選擇");
+        return;
+      }
+      if(!canMove(current, fromTop.size, selectedFrom, index)){
+        showToast("移動唔合法（不可覆同色、不可覆同大小或較大）");
+        return;
+      }
+      movePiece(current, fromTop.size, selectedFrom, index);
+      selectedFrom = null;
+
+      if(checkWin(current)){
+        gameOver = true;
+        render();
+        setTimeout(()=>alert(`勝利！${playerLabel(current)} 連成一線！`), 10);
+        return;
+      }
+      switchTurn();
     }
 
     // Place logic
     function canPlace(player,size,index){
       const stack = board[index];
       const top = stack.length ? stack[stack.length-1] : null;
-      if(!top) return true; // empty
+      if(!top) return true; // 空格可放
       if(top.player === player) return false; // 不可覆同色
       return size > top.size; // 嚴格大於（大吃小）
     }
@@ -666,5 +626,5 @@
   })();
   </script>
 </body>
-</html>
-``
+</
+
