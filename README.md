@@ -1,5 +1,5 @@
 
-
+<!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
@@ -10,7 +10,6 @@
       --blue:#1e90ff;
       --orange:#ff8c00;
       --board-bg:#f7f7f9;
-      --line:#222;
       --text:#222;
       --muted:#666;
       --danger:#d9363e;
@@ -72,9 +71,6 @@
     }
     .btn:hover{ transform: translateY(-1px); box-shadow:0 3px 10px rgba(0,0,0,.08); }
     .btn:active{ transform: translateY(1px); }
-    .btn.primary{ border-color:#999; font-weight:600; }
-    .btn.blue{ color:#fff; background: var(--blue); border-color: var(--blue); }
-    .btn.orange{ color:#fff; background: var(--orange); border-color: var(--orange); }
 
     .status{
       margin-top:8px; font-weight:700;
@@ -139,23 +135,49 @@
       transition: transform .18s ease, filter .18s ease, box-shadow .18s ease, opacity .18s ease;
       will-change: transform;
     }
-    /* sizes */
-    .size-1{ width:60%; height:60%; }
-    .size-2{ width:75%; height:75%; }
-    .size-3{ width:90%; height:90%; }
-    /* texture: 圈紋 vs 十字紋 */
+    /* sizes: 更大差距的直徑 */
+    .size-1{ width:55%; height:55%; }
+    .size-2{ width:72%; height:72%; }
+    .size-3{ width:95%; height:95%; }
+
+    /* texture: 圈紋 vs 十字紋（顏色由玩家決定） */
     .blue-piece{
       background: var(--blue);
-      background-image: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.7) 0 2px, transparent 2px 8px);
-      border: 2px solid #0c6fd3;
+      background-image: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.70) 0 2px, transparent 2px 8px);
+      border: 2px solid #0c6fd3; /* 基準，稍後按大小覆蓋粗度 */
     }
     .orange-piece{
       background: var(--orange);
       background-image:
-        repeating-linear-gradient(0deg, rgba(255,255,255,.7) 0 2px, transparent 2px 8px),
-        repeating-linear-gradient(90deg, rgba(255,255,255,.7) 0 2px, transparent 2px 8px);
+        repeating-linear-gradient(0deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px);
       border: 2px solid #d36a00;
     }
+    /* 邊框粗度隨大小改變（更易分辨） */
+    .blue-piece.size-1{ border-width: 2px; }
+    .blue-piece.size-2{ border-width: 4px; }
+    .blue-piece.size-3{ border-width: 6px; }
+    .orange-piece.size-1{ border-width: 2px; }
+    .orange-piece.size-2{ border-width: 4px; }
+    .orange-piece.size-3{ border-width: 6px; }
+
+    /* 中央尺寸標籤：小／中／大 */
+    .size-badge{
+      position:absolute;
+      left:50%; top:50%; transform: translate(-50%,-50%);
+      color:#fff; font-weight:900;
+      letter-spacing:.5px;
+      background: rgba(0,0,0,.35);
+      border-radius:999px;
+      padding: 2px 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.25);
+      pointer-events:none;
+      user-select:none;
+    }
+    /* 依大小調整字級與內距 */
+    .piece.size-1 .size-badge{ font-size: 12px; padding: 2px 6px; }
+    .piece.size-2 .size-badge{ font-size: 14px; padding: 3px 8px; }
+    .piece.size-3 .size-badge{ font-size: 16px; padding: 4px 10px; }
 
     /* Animations */
     @keyframes bounceIn{
@@ -178,7 +200,7 @@
     /* --- 選中顏色提示（強烈） --- */
     .cell.selected { box-shadow: inset 0 0 0 3px #888; }
     .piece.selected {
-      border-width: 4px;
+      border-width: calc(2px + 2px); /* 在原粗度上再加強效果 */
       filter: saturate(1.2) brightness(1.06);
       transform: translate(-50%,-50%) scale(1.05);
     }
@@ -191,9 +213,7 @@
       background: rgba(30,144,255, .25); /* 藍方覆蓋色 */
       pointer-events: none;
     }
-    .piece.selected.orange-fill::before {
-      background: rgba(255,140,0, .28);
-    }
+    .piece.selected.orange-fill::before { background: rgba(255,140,0, .28); }
     .piece.selected::after {
       content: "";
       position: absolute;
@@ -204,9 +224,7 @@
       animation: pulseRingStrong 1.1s ease-in-out infinite;
       pointer-events: none;
     }
-    .piece.selected.orange-ring::after {
-      box-shadow: 0 0 0 4px rgba(255,140,0,.5);
-    }
+    .piece.selected.orange-ring::after { box-shadow: 0 0 0 4px rgba(255,140,0,.5); }
     @keyframes pulseRingStrong {
       0%   { transform: translate(-50%,-50%) scale(1.00); opacity: .95; }
       50%  { transform: translate(-50%,-50%) scale(1.10); opacity: .40; }
@@ -237,21 +255,46 @@
     .tray-btn.active{ border-color:#888; box-shadow:0 4px 12px rgba(0,0,0,.08); background:#fff; }
 
     .tray .mini-piece{
+      position: relative;
       border-radius:50%;
       box-shadow: 0 3px 8px rgba(0,0,0,.15), inset 0 0 0 3px rgba(255,255,255,.65);
     }
     .mini.size-1{ width:28px; height:28px; }
     .mini.size-2{ width:34px; height:34px; }
     .mini.size-3{ width:40px; height:40px; }
-    .mini.blue{ background:var(--blue);
-      background-image: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.7) 0 2px, transparent 2px 8px);
+    .mini.blue{
+      background:var(--blue);
+      background-image: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.70) 0 2px, transparent 2px 8px);
       border:2px solid #0c6fd3;
     }
-    .mini.orange{ background:var(--orange);
+    .mini.orange{
+      background:var(--orange);
       background-image:
-        repeating-linear-gradient(0deg, rgba(255,255,255,.7) 0 2px, transparent 2px 8px),
-        repeating-linear-gradient(90deg, rgba(255,255,255,.7) 0 2px, transparent 2px 8px);
+        repeating-linear-gradient(0deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px);
       border:2px solid #d36a00;
+    }
+    /* mini 邊框粗度依大小 */
+    .mini.blue.size-1{ border-width:2px; }
+    .mini.blue.size-2{ border-width:4px; }
+    .mini.blue.size-3{ border-width:6px; }
+    .mini.orange.size-1{ border-width:2px; }
+    .mini.orange.size-2{ border-width:4px; }
+    .mini.orange.size-3{ border-width:6px; }
+
+    /* mini 尺寸標籤 */
+    .mini-badge{
+      position:absolute;
+      left:50%; top:50%; transform: translate(-50%,-50%);
+      color:#fff; font-weight:900;
+      background: rgba(0,0,0,.35);
+      border-radius:999px;
+      padding: 1px 6px;
+      font-size:12px;
+      letter-spacing:.5px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.25);
+      pointer-events:none;
+      user-select:none;
     }
 
     .count{ font-size:13px; color:#333; }
@@ -302,17 +345,23 @@
       <h3><span class="role"><span class="dot blue"></span>藍（圈紋）</span></h3>
       <div class="tray-grid">
         <div class="tray-btn" data-player="blue" data-size="3">
-          <div class="mini mini-piece mini blue size-3"></div>
+          <div class="mini mini-piece mini blue size-3">
+            <span class="mini-badge">大</span>
+          </div>
           <div class="count" id="count-blue-3">x 2</div>
           <div>大</div>
         </div>
         <div class="tray-btn" data-player="blue" data-size="2">
-          <div class="mini mini-piece mini blue size-2"></div>
+          <div class="mini mini-piece mini blue size-2">
+            <span class="mini-badge">中</span>
+          </div>
           <div class="count" id="count-blue-2">x 2</div>
           <div>中</div>
         </div>
         <div class="tray-btn" data-player="blue" data-size="1">
-          <div class="mini mini-piece mini blue size-1"></div>
+          <div class="mini mini-piece mini blue size-1">
+            <span class="mini-badge">小</span>
+          </div>
           <div class="count" id="count-blue-1">x 2</div>
           <div>小</div>
         </div>
@@ -331,17 +380,23 @@
       <h3><span class="role"><span class="dot orange"></span>橙（十字紋）</span></h3>
       <div class="tray-grid">
         <div class="tray-btn" data-player="orange" data-size="3">
-          <div class="mini mini-piece mini orange size-3"></div>
+          <div class="mini mini-piece mini orange size-3">
+            <span class="mini-badge">大</span>
+          </div>
           <div class="count" id="count-orange-3">x 2</div>
           <div>大</div>
         </div>
         <div class="tray-btn" data-player="orange" data-size="2">
-          <div class="mini mini-piece mini orange size-2"></div>
+          <div class="mini mini-piece mini orange size-2">
+            <span class="mini-badge">中</span>
+          </div>
           <div class="count" id="count-orange-2">x 2</div>
           <div>中</div>
         </div>
         <div class="tray-btn" data-player="orange" data-size="1">
-          <div class="mini mini-piece mini orange size-1"></div>
+          <div class="mini mini-piece mini orange size-1">
+            <span class="mini-badge">小</span>
+          </div>
           <div class="count" id="count-orange-1">x 2</div>
           <div>小</div>
         </div>
@@ -349,7 +404,7 @@
     </div>
 
     <!-- Footer -->
-    <div class="footer">設計：更似實體棋 UI · 無提示 PVP · 動畫：彈跳/壓住 · 任何回合可放置或移動（自動判斷；同色大覆細允許）</div>
+    <div class="footer">更似實體棋 · 大中小更易分辨（直徑、邊框、標籤） · 無提示 PVP · 動畫：彈跳/壓住 · 同色大覆細允許</div>
 
     <!-- Toast -->
     <div id="toast" class="toast" aria-live="polite"></div>
@@ -365,12 +420,9 @@
       [0,4,8],[2,4,6]          // diagonals
     ];
     let board = Array.from({length:9},()=>[]); // each cell: stack of {player,size}
-    let counts = {
-      blue: {1:2,2:2,3:2},
-      orange: {1:2,2:2,3:2}
-    };
-    let current = "blue";      // 現在輪到誰
-    let selectedSize = null;   // 托盤選擇的大小（表示放置意圖）
+    let counts = { blue:{1:2,2:2,3:2}, orange:{1:2,2:2,3:2} };
+    let current = "blue";
+    let selectedSize = null;   // 托盤選擇的大小（放置意圖）
     let selectedFrom = null;   // 準備移動的來源格 index
     let gameOver = false;
 
@@ -391,7 +443,7 @@
       boardEl.appendChild(c);
     }
 
-    // Tray selection（直接點托盤選大小）
+    // Tray selection（直接點托盤選大小；改為放置時清除移動選擇）
     document.querySelectorAll(".tray-btn").forEach(btn=>{
       btn.addEventListener("click", ()=>{
         if(gameOver) return;
@@ -403,14 +455,7 @@
           return;
         }
         selectedSize = size;
-
-        // 改為出棋（放置）時，清除任何移動選擇
-        if(selectedFrom !== null){
-          selectedFrom = null;
-          render(); // 更新：移除棋子高亮
-        }
-
-        // 托盤按鈕高亮
+        if(selectedFrom !== null){ selectedFrom = null; render(); }
         document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("active"));
         btn.classList.add("active");
         showToast(`已選擇：${playerLabel(player)} 的${sizeNames[size]}（點棋盤落子）`);
@@ -443,15 +488,22 @@
         const cellEl = boardEl.children[i];
         const old = cellEl.querySelector(".piece");
         if(old) old.remove();
-        cellEl.classList.remove("selected"); // 清除格子選中視覺
+        cellEl.classList.remove("selected");
 
         const top = topPiece(i);
         if(top){
           const p = document.createElement("div");
           p.className = `piece ${top.player==='blue'?'blue-piece':'orange-piece'} size-${top.size}`;
 
+          // 原有動畫旗標
           if(top.justPlaced) p.classList.add("bounce");
           if(top.justPressed) p.classList.add("press");
+
+          // 中央尺寸標籤（小／中／大）
+          const badge = document.createElement("span");
+          badge.className = "size-badge";
+          badge.textContent = sizeNames[top.size];
+          p.appendChild(badge);
 
           // 明顯顏色提示：被選中準備移動的棋子
           if(selectedFrom === i && top.player === current){
@@ -490,7 +542,7 @@
 
       const tp = topPiece(index);
 
-      // 1) 如已在托盤選了大小 → 嘗試放置（允許同色大覆細）
+      // 1) 已在托盤選了大小 → 嘗試放置（允許同色大覆細）
       if(selectedSize !== null){
         if(!canPlace(current, selectedSize, index)){
           showToast("呢步唔合法（不可覆同大小或較大）");
@@ -566,8 +618,8 @@
     function canPlace(player,size,index){
       const stack = board[index];
       const top = stack.length ? stack[stack.length-1] : null;
-      if(!top) return true; // 空格可放
-      return size > top.size; // 無論同色或異色，只能大吃小
+      if(!top) return true;            // 空格可放
+      return size > top.size;          // 無論同色或異色，只能大吃小
     }
     function placePiece(player,size,index){
       const stack = board[index];
@@ -581,14 +633,14 @@
       const fromTop = topPiece(from);
       if(!fromTop || fromTop.player!==player || fromTop.size!==size) return false; // 只可移動自己最上層
       const toTop = topPiece(to);
-      if(!toTop) return true; // 移去空格
-      return size > toTop.size; // 嚴格大於先可覆（同色或異色皆可）
+      if(!toTop) return true;          // 移去空格
+      return size > toTop.size;        // 嚴格大於先可覆（同色或異色皆可）
     }
-       function movePiece(player,size,from,to){
+    function movePiece(player,size,from,to){
       const fromStack = board[from];
       const moving = fromStack.pop(); // top piece
       const toStack = board[to];
-      moving.justPlaced = true; // 用同一彈跳動畫
+      moving.justPlaced = true;       // 用同一彈跳動畫
       moving.justPressed = !!(toStack.length); // 有目標堆疊→壓住一下
       toStack.push(moving);
       render();
@@ -624,6 +676,10 @@
 
     function playerLabel(p){ return p==="blue" ? "藍" : "橙"; }
 
+    function clearTrayActive(){
+      document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("active"));
+    }
+
     // Toast
     let toastTimer = null;
     function showToast(msg){
@@ -638,4 +694,5 @@
   })();
   </script>
 </body>
+</html>
 
