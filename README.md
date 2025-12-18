@@ -404,7 +404,7 @@
     </div>
 
     <!-- Footer -->
-    <div class="footer">更似實體棋 · 大中小更易分辨（直徑、邊框、標籤） · 無提示 PVP · 動畫：彈跳/壓住 · 同色大覆細允許</div>
+    <div class="footer">更似實體棋 · 大中小更易分辨（直徑、邊框、標籤） · 無提示 PVP · 動畫：彈跳/壓住 · 同色大覆細允許 · 可隨時改為移動</div>
 
     <!-- Toast -->
     <div id="toast" class="toast" aria-live="polite"></div>
@@ -443,22 +443,36 @@
       boardEl.appendChild(c);
     }
 
-    // Tray selection（直接點托盤選大小；改為放置時清除移動選擇）
+    // Tray selection（支援改變主意：再次點同一按鈕可取消；或點棋盤自己的棋子改為移動）
     document.querySelectorAll(".tray-btn").forEach(btn=>{
       btn.addEventListener("click", ()=>{
         if(gameOver) return;
         const player = btn.dataset.player;
         const size   = Number(btn.dataset.size);
+        const isActive = btn.classList.contains("active");
+
         if(player !== current){ showToast("未到你嗰邊喔"); return; }
         if(counts[player][size] <= 0){
           showToast(`${playerLabel(player)} 的 ${sizeNames[size]} 已用完`);
           return;
         }
+
+        // ✅ 再次點同一個已選按鈕 → 取消出棋，保留改為移動的空間
+        if(isActive && selectedSize === size){
+          selectedSize = null;
+          btn.classList.remove("active");
+          showToast("已取消出棋，可改為移動（點棋盤內自己棋子）");
+          return;
+        }
+
+        // 揀新大小
         selectedSize = size;
+        // 改為出棋時，清除任何移動選擇
         if(selectedFrom !== null){ selectedFrom = null; render(); }
+        // 托盤按鈕高亮
         document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("active"));
         btn.classList.add("active");
-        showToast(`已選擇：${playerLabel(player)} 的${sizeNames[size]}（點棋盤落子）`);
+        showToast(`已選擇：${playerLabel(player)} 的${sizeNames[size]}（點棋盤落子；或點自己棋子改為移動）`);
       });
     });
 
@@ -495,15 +509,15 @@
           const p = document.createElement("div");
           p.className = `piece ${top.player==='blue'?'blue-piece':'orange-piece'} size-${top.size}`;
 
-          // 原有動畫旗標
-          if(top.justPlaced) p.classList.add("bounce");
-          if(top.justPressed) p.classList.add("press");
-
-          // 中央尺寸標籤（小／中／大）
+          // 中央尺寸標籤
           const badge = document.createElement("span");
           badge.className = "size-badge";
           badge.textContent = sizeNames[top.size];
           p.appendChild(badge);
+
+          // 動畫旗標
+          if(top.justPlaced) p.classList.add("bounce");
+          if(top.justPressed) p.classList.add("press");
 
           // 明顯顏色提示：被選中準備移動的棋子
           if(selectedFrom === i && top.player === current){
@@ -542,8 +556,19 @@
 
       const tp = topPiece(index);
 
-      // 1) 已在托盤選了大小 → 嘗試放置（允許同色大覆細）
+      // ✅ 已選托盤大小（準備放置）時：
       if(selectedSize !== null){
+        // 如果點到自己最上層棋子 → 改為移動（不進行落子）
+        if(tp && tp.player === current){
+          selectedFrom = index;
+          selectedSize = null;
+          clearTrayActive();
+          render();
+          showToast(`已改為移動：選中第 ${index+1} 格（${sizeNames[tp.size]}），再點目標格`);
+          return;
+        }
+
+        // 否則照常嘗試放置（允許同色大覆細）
         if(!canPlace(current, selectedSize, index)){
           showToast("呢步唔合法（不可覆同大小或較大）");
           return;
@@ -562,7 +587,7 @@
         return;
       }
 
-      // 2) 未選大小 → 移動流程
+      // 未選大小 → 移動流程
       // Step1: 未選來源格 → 點自己最上層棋子以選中
       if(selectedFrom === null){
         if(!tp || tp.player !== current){
