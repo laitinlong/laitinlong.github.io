@@ -451,74 +451,84 @@
     }
 
     // --- Game actions ---
-    function onCellClick(index){
-      if(gameOver) return;
 
-      if(mode==="place"){
-        if(selectedSize===null){
-          showToast("先喺托盤揀 大 / 中 / 小");
-          return;
-        }
-        if(!canPlace(current, selectedSize, index)){
-          showToast("呢步唔合法（不可覆蓋同色、不可覆同大小或較大）");
-          return;
-        }
-        placePiece(current, selectedSize, index);
-        counts[current][selectedSize]--;
-        // 清除托盤選中
-        selectedSize = null; clearTrayActive();
-        // 勝負判定
-        if(checkWin(current)){
-          gameOver = true;
-          render();
-          setTimeout(()=>alert(`勝利！${playerLabel(current)} 連成一線！`), 10);
-          return;
-        }
-        // 換手
-        switchTurn();
-      }
-      else if(mode==="move"){
-        // Step1: 未選 from -> 先選自己最上層
-        if(selectedFrom===null){
-          const tp = topPiece(index);
-          if(!tp || tp.player !== current){
-            showToast("只可選你自己最上層棋子");
-            return;
-          }
-          selectedFrom = index;
-          showToast(`已選：第 ${index+1} 格（${sizeNames[tp.size]}）→ 再點目標格`);
-        }else{
-          // Step2: 目標
-          const fromTop = topPiece(selectedFrom);
-          if(!fromTop || fromTop.player !== current){
-            // theoretically shouldn't happen
-            selectedFrom = null;
-            showToast("選擇失效，請重選");
-            return;
-          }
-          if(selectedFrom===index){
-            selectedFrom = null;
-            showToast("已取消選擇");
-            return;
-          }
-          if(!canMove(current, fromTop.size, selectedFrom, index)){
-            showToast("移動唔合法（不可覆同色、不可覆同大小或較大）");
-            return;
-          }
-          movePiece(current, fromTop.size, selectedFrom, index);
-          selectedFrom = null;
-          // 勝負判定
-          if(checkWin(current)){
-            gameOver = true;
-            render();
-            setTimeout(()=>alert(`勝利！${playerLabel(current)} 連成一線！`), 10);
-            return;
-          }
-          // 換手
-          switchTurn();
-        }
-      }
+function onCellClick(index){
+  if(gameOver) return;
+
+  const tp = topPiece(index);
+
+  // ✅ 新增：若「放置模式」但未選大小，而且你點到自己最上層棋子 → 自動進入移動模式並選中該棋
+  if(mode==="place" && selectedSize===null && tp && tp.player===current){
+    mode = "move";
+    selectedFrom = index;
+    updateModeButtons();
+    showToast(`已選：第 ${index+1} 格（${sizeNames[tp.size]}）→ 再點目標格`);
+    return; // 本次事件只做選中，不再往下走
+  }
+
+  if(mode==="place"){
+    if(selectedSize===null){
+      showToast("先喺托盤揀 大 / 中 / 小（或直接點你嘅棋子進入移動）");
+      return;
     }
+    if(!canPlace(current, selectedSize, index)){
+      showToast("呢步唔合法（不可覆蓋同色、不可覆同大小或較大）");
+      return;
+    }
+    placePiece(current, selectedSize, index);
+    counts[current][selectedSize]--;
+    // 清除托盤選中
+    selectedSize = null; clearTrayActive();
+    // 勝負判定
+    if(checkWin(current)){
+      gameOver = true;
+      render();
+      setTimeout(()=>alert(`勝利！${playerLabel(current)} 連成一線！`), 10);
+      return;
+    }
+    // 換手
+    switchTurn();
+  }
+  else if(mode==="move"){
+    // Step1: 未選 from -> 先選自己最上層（保持原規則）
+    if(selectedFrom===null){
+      if(!tp || tp.player !== current){
+        showToast("只可選你自己最上層棋子");
+        return;
+      }
+      selectedFrom = index;
+      showToast(`已選：第 ${index+1} 格（${sizeNames[tp.size]}）→ 再點目標格`);
+    }else{
+      // Step2: 目標
+      const fromTop = topPiece(selectedFrom);
+      if(!fromTop || fromTop.player !== current){
+        selectedFrom = null;
+        showToast("選擇失效，請重選");
+        return;
+      }
+      if(selectedFrom===index){
+        selectedFrom = null;
+        showToast("已取消選擇");
+        return;
+      }
+      if(!canMove(current, fromTop.size, selectedFrom, index)){
+        showToast("移動唔合法（不可覆同色、不可覆同大小或較大）");
+        return;
+      }
+      movePiece(current, fromTop.size, selectedFrom, index);
+      selectedFrom = null;
+      // 勝負判定
+      if(checkWin(current)){
+        gameOver = true;
+        render();
+        setTimeout(()=>alert(`勝利！${playerLabel(current)} 連成一線！`), 10);
+        return;
+      }
+      // 換手
+      switchTurn();
+    }
+  }
+}
 
     // Place logic
     function canPlace(player,size,index){
