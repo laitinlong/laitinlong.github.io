@@ -349,7 +349,7 @@
     </div>
 
     <!-- Footer -->
-    <div class="footer">設計：更似實體棋 UI · 無提示 PVP · 動畫：彈跳/壓住 · 任何回合可放置或移動（自動判斷）</div>
+    <div class="footer">設計：更似實體棋 UI · 無提示 PVP · 動畫：彈跳/壓住 · 任何回合可放置或移動（自動判斷；同色大覆細允許）</div>
 
     <!-- Toast -->
     <div id="toast" class="toast" aria-live="polite"></div>
@@ -403,7 +403,13 @@
           return;
         }
         selectedSize = size;
-        selectedFrom = null; // 清除移動選擇
+
+        // 改為出棋（放置）時，清除任何移動選擇
+        if(selectedFrom !== null){
+          selectedFrom = null;
+          render(); // 更新：移除棋子高亮
+        }
+
         // 托盤按鈕高亮
         document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("active"));
         btn.classList.add("active");
@@ -484,11 +490,10 @@
 
       const tp = topPiece(index);
 
-      // 操作判斷：
-      // 1) 如已在托盤選了大小 → 嘗試放置
+      // 1) 如已在托盤選了大小 → 嘗試放置（允許同色大覆細）
       if(selectedSize !== null){
         if(!canPlace(current, selectedSize, index)){
-          showToast("呢步唔合法（不可覆同色、不可覆同大小或較大）");
+          showToast("呢步唔合法（不可覆同大小或較大）");
           return;
         }
         placePiece(current, selectedSize, index);
@@ -506,7 +511,7 @@
       }
 
       // 2) 未選大小 → 移動流程
-      // Step1: 未選 from → 點自己最上層棋子以選中
+      // Step1: 未選來源格 → 點自己最上層棋子以選中
       if(selectedFrom === null){
         if(!tp || tp.player !== current){
           showToast("只可選你自己最上層棋子（或去托盤揀大小落子）");
@@ -518,24 +523,33 @@
         return;
       }
 
-      // Step2: 已有 from → 點目標格完成移動/取消
+      // Step2: 已選來源格 → 嘗試移動（包括同色大覆細）
       const fromTop = topPiece(selectedFrom);
+
+      // 選擇失效（例如被覆蓋）→ 清除選中
       if(!fromTop || fromTop.player !== current){
         selectedFrom = null;
         render();
         showToast("選擇失效，請重選");
         return;
       }
+
+      // 點同一格 → 取消選擇
       if(selectedFrom === index){
         selectedFrom = null;
         render();
         showToast("已取消選擇");
         return;
       }
+
+      // 嘗試移動到目標格（允許覆蓋同色較小）
       if(!canMove(current, fromTop.size, selectedFrom, index)){
-        showToast("移動唔合法（不可覆同色、不可覆同大小或較大）");
+        // 不合法移動：保留原選中，不切換、不取消
+        showToast("移動唔合法（不可覆同大小或較大）");
         return;
       }
+
+      // 合法移動
       movePiece(current, fromTop.size, selectedFrom, index);
       selectedFrom = null;
 
@@ -548,13 +562,12 @@
       switchTurn();
     }
 
-    // Place logic
+    // Place logic（允許同色大覆細）
     function canPlace(player,size,index){
       const stack = board[index];
       const top = stack.length ? stack[stack.length-1] : null;
       if(!top) return true; // 空格可放
-      if(top.player === player) return false; // 不可覆同色
-      return size > top.size; // 嚴格大於（大吃小）
+      return size > top.size; // 無論同色或異色，只能大吃小
     }
     function placePiece(player,size,index){
       const stack = board[index];
@@ -562,17 +575,16 @@
       render();
     }
 
-    // Move logic
+    // Move logic（允許同色大覆細）
     function canMove(player,size,from,to){
       if(from===to) return false;
       const fromTop = topPiece(from);
       if(!fromTop || fromTop.player!==player || fromTop.size!==size) return false; // 只可移動自己最上層
       const toTop = topPiece(to);
       if(!toTop) return true; // 移去空格
-      if(toTop.player===player) return false; // 不可覆同色
-      return size > toTop.size; // 嚴格大於先可覆
+      return size > toTop.size; // 嚴格大於先可覆（同色或異色皆可）
     }
-    function movePiece(player,size,from,to){
+       function movePiece(player,size,from,to){
       const fromStack = board[from];
       const moving = fromStack.pop(); // top piece
       const toStack = board[to];
@@ -626,5 +638,4 @@
   })();
   </script>
 </body>
-</
 
