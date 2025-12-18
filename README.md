@@ -138,6 +138,43 @@
       transition: transform .18s ease, filter .18s ease, box-shadow .18s ease, opacity .18s ease;
       will-change: transform;
     }
+    
+/* 選中格子邊框（輕微加粗） */
+.cell.selected {
+  box-shadow: inset 0 0 0 3px #999;
+}
+
+/* 選中棋子：提亮、加粗邊框、外圈脈衝 */
+.piece.selected {
+  filter: brightness(1.08);
+  border-width: 3px;
+  transform: translate(-50%,-50%) scale(1.02);
+}
+
+/* 外圍脈衝圈（以 ::after 製作） */
+.piece.selected::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%; transform: translate(-50%,-50%);
+  width: 105%; height: 105%;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(30,144,255,.35); /* 藍方光暈預設（會用 JS 覆蓋顏色） */
+  animation: pulseRing 1.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* 橙方光暈（覆蓋顏色） */
+.piece.selected.orange-ring::after {
+  box-shadow: 0 0 0 3px rgba(255,140,0,.35);
+}
+
+/* 脈衝動畫 */
+@keyframes pulseRing {
+  0%   { transform: translate(-50%,-50%) scale(1.00); opacity: .90; }
+  50%  { transform: translate(-50%,-50%) scale(1.08); opacity: .40; }
+  100% { transform: translate(-50%,-50%) scale(1.00); opacity: .90; }
+}
+
     /* sizes */
     .size-1{ width:60%; height:60%; }
     .size-2{ width:75%; height:75%; }
