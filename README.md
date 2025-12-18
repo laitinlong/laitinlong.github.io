@@ -168,6 +168,58 @@
   box-shadow: 0 0 0 3px rgba(255,140,0,.35);
 }
 
+/* 選中格子邊框：稍微加粗，令位置更明顯 */
+.cell.selected {
+  box-shadow: inset 0 0 0 3px #888;
+}
+
+/* 選中棋子：加粗邊框 + 提亮 + 輕微放大 */
+.piece.selected {
+  border-width: 4px;
+  filter: saturate(1.2) brightness(1.06);
+  transform: translate(-50%,-50%) scale(1.05);
+}
+
+/* 強烈顏色覆蓋層（半透明） */
+.piece.selected::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%; transform: translate(-50%,-50%);
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  background: rgba(30,144,255, .25); /* 預設藍方覆蓋色 */
+  pointer-events: none;
+}
+
+/* 橙方覆蓋層顏色 */
+.piece.selected.orange-fill::before {
+  background: rgba(255,140,0, .28);
+}
+
+/* 外圍光暈圈（脈衝） */
+.piece.selected::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%; transform: translate(-50%,-50%);
+  width: 115%; height: 115%;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(30,144,255,.45); /* 藍方光暈 */
+  animation: pulseRingStrong 1.1s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* 橙方光暈 */
+.piece.selected.orange-ring::after {
+  box-shadow: 0 0 0 4px rgba(255,140,0,.5);
+}
+
+/* 脈衝動畫（更明顯） */
+@keyframes pulseRingStrong {
+  0%   { transform: translate(-50%,-50%) scale(1.00); opacity: .95; }
+  50%  { transform: translate(-50%,-50%) scale(1.10); opacity: .40; }
+  100% { transform: translate(-50%,-50%) scale(1.00); opacity: .95; }
+}
+
 /* 脈衝動畫 */
 @keyframes pulseRing {
   0%   { transform: translate(-50%,-50%) scale(1.00); opacity: .90; }
