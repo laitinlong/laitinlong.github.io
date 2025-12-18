@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -138,95 +139,6 @@
       transition: transform .18s ease, filter .18s ease, box-shadow .18s ease, opacity .18s ease;
       will-change: transform;
     }
-    
-/* 選中格子邊框（輕微加粗） */
-.cell.selected {
-  box-shadow: inset 0 0 0 3px #999;
-}
-
-/* 選中棋子：提亮、加粗邊框、外圈脈衝 */
-.piece.selected {
-  filter: brightness(1.08);
-  border-width: 3px;
-  transform: translate(-50%,-50%) scale(1.02);
-}
-
-/* 外圍脈衝圈（以 ::after 製作） */
-.piece.selected::after {
-  content: "";
-  position: absolute;
-  left: 50%; top: 50%; transform: translate(-50%,-50%);
-  width: 105%; height: 105%;
-  border-radius: 50%;
-  box-shadow: 0 0 0 3px rgba(30,144,255,.35); /* 藍方光暈預設（會用 JS 覆蓋顏色） */
-  animation: pulseRing 1.2s ease-in-out infinite;
-  pointer-events: none;
-}
-
-/* 橙方光暈（覆蓋顏色） */
-.piece.selected.orange-ring::after {
-  box-shadow: 0 0 0 3px rgba(255,140,0,.35);
-}
-
-/* 選中格子邊框：稍微加粗，令位置更明顯 */
-.cell.selected {
-  box-shadow: inset 0 0 0 3px #888;
-}
-
-/* 選中棋子：加粗邊框 + 提亮 + 輕微放大 */
-.piece.selected {
-  border-width: 4px;
-  filter: saturate(1.2) brightness(1.06);
-  transform: translate(-50%,-50%) scale(1.05);
-}
-
-/* 強烈顏色覆蓋層（半透明） */
-.piece.selected::before {
-  content: "";
-  position: absolute;
-  left: 50%; top: 50%; transform: translate(-50%,-50%);
-  width: 100%; height: 100%;
-  border-radius: 50%;
-  background: rgba(30,144,255, .25); /* 預設藍方覆蓋色 */
-  pointer-events: none;
-}
-
-/* 橙方覆蓋層顏色 */
-.piece.selected.orange-fill::before {
-  background: rgba(255,140,0, .28);
-}
-
-/* 外圍光暈圈（脈衝） */
-.piece.selected::after {
-  content: "";
-  position: absolute;
-  left: 50%; top: 50%; transform: translate(-50%,-50%);
-  width: 115%; height: 115%;
-  border-radius: 50%;
-  box-shadow: 0 0 0 4px rgba(30,144,255,.45); /* 藍方光暈 */
-  animation: pulseRingStrong 1.1s ease-in-out infinite;
-  pointer-events: none;
-}
-
-/* 橙方光暈 */
-.piece.selected.orange-ring::after {
-  box-shadow: 0 0 0 4px rgba(255,140,0,.5);
-}
-
-/* 脈衝動畫（更明顯） */
-@keyframes pulseRingStrong {
-  0%   { transform: translate(-50%,-50%) scale(1.00); opacity: .95; }
-  50%  { transform: translate(-50%,-50%) scale(1.10); opacity: .40; }
-  100% { transform: translate(-50%,-50%) scale(1.00); opacity: .95; }
-}
-
-/* 脈衝動畫 */
-@keyframes pulseRing {
-  0%   { transform: translate(-50%,-50%) scale(1.00); opacity: .90; }
-  50%  { transform: translate(-50%,-50%) scale(1.08); opacity: .40; }
-  100% { transform: translate(-50%,-50%) scale(1.00); opacity: .90; }
-}
-
     /* sizes */
     .size-1{ width:60%; height:60%; }
     .size-2{ width:75%; height:75%; }
@@ -262,6 +174,44 @@
     }
     .bounce{ animation: bounceIn .28s ease-out; }
     .press{ animation: pressDown .28s ease-out; }
+
+    /* --- 新增：選中顏色提示（強烈） --- */
+    .cell.selected { box-shadow: inset 0 0 0 3px #888; }
+    .piece.selected {
+      border-width: 4px;
+      filter: saturate(1.2) brightness(1.06);
+      transform: translate(-50%,-50%) scale(1.05);
+    }
+    .piece.selected::before {
+      content: "";
+      position: absolute;
+      left: 50%; top: 50%; transform: translate(-50%,-50%);
+      width: 100%; height: 100%;
+      border-radius: 50%;
+      background: rgba(30,144,255, .25); /* 藍方覆蓋色 */
+      pointer-events: none;
+    }
+    .piece.selected.orange-fill::before {
+      background: rgba(255,140,0, .28);
+    }
+    .piece.selected::after {
+      content: "";
+      position: absolute;
+      left: 50%; top: 50%; transform: translate(-50%,-50%);
+      width: 115%; height: 115%;
+      border-radius: 50%;
+      box-shadow: 0 0 0 4px rgba(30,144,255,.45); /* 藍方光暈 */
+      animation: pulseRingStrong 1.1s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .piece.selected.orange-ring::after {
+      box-shadow: 0 0 0 4px rgba(255,140,0,.5);
+    }
+    @keyframes pulseRingStrong {
+      0%   { transform: translate(-50%,-50%) scale(1.00); opacity: .95; }
+      50%  { transform: translate(-50%,-50%) scale(1.10); opacity: .40; }
+      100% { transform: translate(-50%,-50%) scale(1.00); opacity: .95; }
+    }
 
     /* Trays */
     .tray{
@@ -456,9 +406,7 @@
         if(gameOver) return;
         const player = btn.dataset.player;
         const size   = Number(btn.dataset.size);
-        // PVP 無提示：只允許當前輪到嘅一方選托盤
         if(player !== current){ showToast("未到你嗰邊喔"); return; }
-        // 若庫存 0：提示並不選中
         if(counts[player][size] <= 0){
           showToast(`${playerLabel(player)} 的 ${sizeNames[size]} 已用完`);
           return;
@@ -467,7 +415,6 @@
         selectedFrom = null;
         mode = "place";
         updateModeButtons();
-        // 標示選中（非提示落點，只是托盤按鈕高亮）
         document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("active"));
         btn.classList.add("active");
       });
@@ -479,6 +426,7 @@
       mode = "place";
       selectedFrom = null;
       updateModeButtons();
+      render();
       showToast("模式：放置");
     });
     modeMoveBtn.addEventListener("click", ()=>{
@@ -487,6 +435,7 @@
       selectedSize = null;
       clearTrayActive();
       updateModeButtons();
+      render();
       showToast("模式：移動（先點選你最上層棋子）");
     });
 
@@ -495,56 +444,63 @@
     swapFirstBtn.addEventListener("click", ()=>resetGame(true));
 
     // --- Rendering ---
+    function ensureSelectionValid(){
+      if(selectedFrom !== null){
+        const t = topPiece(selectedFrom);
+        if(!t || t.player !== current){
+          selectedFrom = null;
+        }
+      }
+    }
 
-function render(){
-  // Turn chip
-  turnDot.className = "dot " + (current==="blue"?"blue":"orange");
-  turnText.textContent = current==="blue" ? "藍" : "橙";
+    function render(){
+      ensureSelectionValid();
 
-  // Board: render top piece only
-  for(let i=0;i<9;i++){
-    const cellEl = boardEl.children[i];
+      // Turn chip
+      turnDot.className = "dot " + (current==="blue"?"blue":"orange");
+      turnText.textContent = current==="blue" ? "藍" : "橙";
 
-    // 先清除舊視覺
-    const old = cellEl.querySelector(".piece");
-    if(old) old.remove();
-    cellEl.classList.remove("selected"); // ✅ 清除格子選中效果
+      // Board: render top piece only（無堆疊視覺）
+      for(let i=0;i<9;i++){
+        const cellEl = boardEl.children[i];
+        const old = cellEl.querySelector(".piece");
+        if(old) old.remove();
+        cellEl.classList.remove("selected"); // 清除格子選中
 
-    const top = topPiece(i);
-    if(top){
-      const p = document.createElement("div");
-      p.className = `piece ${top.player==='blue'?'blue-piece':'orange-piece'} size-${top.size}`;
+        const top = topPiece(i);
+        if(top){
+          const p = document.createElement("div");
+          p.className = `piece ${top.player==='blue'?'blue-piece':'orange-piece'} size-${top.size}`;
 
-      // 原有動畫旗標
-      if(top.justPlaced) p.classList.add("bounce");
-      if(top.justPressed) p.classList.add("press");
+          if(top.justPlaced) p.classList.add("bounce");
+          if(top.justPressed) p.classList.add("press");
 
-      // ✅ 新增：如果此格是「已選中準備移動」的格子，套用選中效果
-      if(selectedFrom === i && top.player === current){
-        p.classList.add("selected");                 // 棋子選中樣式
-        cellEl.classList.add("selected");            // 格子邊框加粗
-        if(top.player === "orange") p.classList.add("orange-ring"); // 橙方光暈
+          // 明顯顏色提示：被選中準備移動的棋子
+          if(selectedFrom === i && top.player === current){
+            p.classList.add("selected");
+            cellEl.classList.add("selected");
+            if(top.player === "orange"){
+              p.classList.add("orange-fill");
+              p.classList.add("orange-ring");
+            }
+          }
+
+          cellEl.appendChild(p);
+          delete top.justPlaced;
+          delete top.justPressed;
+        }
       }
 
-      cellEl.appendChild(p);
-
-      // consume flags
-      delete top.justPlaced;
-      delete top.justPressed;
+      // Trays count & blink
+      [1,2,3].forEach(s=>{
+        const cb = document.getElementById(`count-blue-${s}`);
+        const co = document.getElementById(`count-orange-${s}`);
+        cb.textContent = `x ${counts.blue[s]}`;
+        co.textContent = `x ${counts.orange[s]}`;
+        cb.classList.toggle("zero", counts.blue[s]===0);
+        co.classList.toggle("zero", counts.orange[s]===0);
+      });
     }
-  }
-
-  // Trays count & blink（保持不變）
-  [1,2,3].forEach(s=>{
-    const cb = document.getElementById(`count-blue-${s}`);
-    const co = document.getElementById(`count-orange-${s}`);
-    cb.textContent = `x ${counts.blue[s]}`;
-    co.textContent = `x ${counts.orange[s]}`;
-    cb.classList.toggle("zero", counts.blue[s]===0);
-    co.classList.toggle("zero", counts.orange[s]===0);
-  });
-}
-``
 
     function updateModeButtons(){
       modePlaceBtn.classList.toggle("primary", mode==="place");
@@ -555,84 +511,82 @@ function render(){
     }
 
     // --- Game actions ---
+    function onCellClick(index){
+      if(gameOver) return;
 
-function onCellClick(index){
-  if(gameOver) return;
+      const tp = topPiece(index);
 
-  const tp = topPiece(index);
-
-  // ✅ 新增：若「放置模式」但未選大小，而且你點到自己最上層棋子 → 自動進入移動模式並選中該棋
-  if(mode==="place" && selectedSize===null && tp && tp.player===current){
-    mode = "move";
-    selectedFrom = index;
-    updateModeButtons();
-    showToast(`已選：第 ${index+1} 格（${sizeNames[tp.size]}）→ 再點目標格`);
-    return; // 本次事件只做選中，不再往下走
-  }
-
-  if(mode==="place"){
-    if(selectedSize===null){
-      showToast("先喺托盤揀 大 / 中 / 小（或直接點你嘅棋子進入移動）");
-      return;
-    }
-    if(!canPlace(current, selectedSize, index)){
-      showToast("呢步唔合法（不可覆蓋同色、不可覆同大小或較大）");
-      return;
-    }
-    placePiece(current, selectedSize, index);
-    counts[current][selectedSize]--;
-    // 清除托盤選中
-    selectedSize = null; clearTrayActive();
-    // 勝負判定
-    if(checkWin(current)){
-      gameOver = true;
-      render();
-      setTimeout(()=>alert(`勝利！${playerLabel(current)} 連成一線！`), 10);
-      return;
-    }
-    // 換手
-    switchTurn();
-  }
-  else if(mode==="move"){
-    // Step1: 未選 from -> 先選自己最上層（保持原規則）
-    if(selectedFrom===null){
-      if(!tp || tp.player !== current){
-        showToast("只可選你自己最上層棋子");
-        return;
-      }
-      selectedFrom = index;
-      showToast(`已選：第 ${index+1} 格（${sizeNames[tp.size]}）→ 再點目標格`);
-    }else{
-      // Step2: 目標
-      const fromTop = topPiece(selectedFrom);
-      if(!fromTop || fromTop.player !== current){
-        selectedFrom = null;
-        showToast("選擇失效，請重選");
-        return;
-      }
-      if(selectedFrom===index){
-        selectedFrom = null;
-        showToast("已取消選擇");
-        return;
-      }
-      if(!canMove(current, fromTop.size, selectedFrom, index)){
-        showToast("移動唔合法（不可覆同色、不可覆同大小或較大）");
-        return;
-      }
-      movePiece(current, fromTop.size, selectedFrom, index);
-      selectedFrom = null;
-      // 勝負判定
-      if(checkWin(current)){
-        gameOver = true;
+      // ✅ 簡化移動：放置模式但未選大小，且點到自己最上層 → 自動進入移動模式並選中
+      if(mode==="place" && selectedSize===null && tp && tp.player===current){
+        mode = "move";
+        selectedFrom = index;
+        updateModeButtons();
         render();
-        setTimeout(()=>alert(`勝利！${playerLabel(current)} 連成一線！`), 10);
+        showToast(`已選：第 ${index+1} 格（${sizeNames[tp.size]}）→ 再點目標格`);
         return;
       }
-      // 換手
-      switchTurn();
+
+      if(mode==="place"){
+        if(selectedSize===null){
+          showToast("先喺托盤揀 大 / 中 / 小（或直接點你嘅棋子進入移動）");
+          return;
+        }
+        if(!canPlace(current, selectedSize, index)){
+          showToast("呢步唔合法（不可覆蓋同色、不可覆同大小或較大）");
+          return;
+        }
+        placePiece(current, selectedSize, index);
+        counts[current][selectedSize]--;
+        selectedSize = null; clearTrayActive();
+
+        if(checkWin(current)){
+          gameOver = true;
+          render();
+          setTimeout(()=>alert(`勝利！${playerLabel(current)} 連成一線！`), 10);
+          return;
+        }
+        switchTurn();
+      }
+      else if(mode==="move"){
+        if(selectedFrom===null){
+          if(!tp || tp.player !== current){
+            showToast("只可選你自己最上層棋子");
+            return;
+          }
+          selectedFrom = index;
+          render();
+          showToast(`已選：第 ${index+1} 格（${sizeNames[tp.size]}）→ 再點目標格`);
+        }else{
+          const fromTop = topPiece(selectedFrom);
+          if(!fromTop || fromTop.player !== current){
+            selectedFrom = null;
+            render();
+            showToast("選擇失效，請重選");
+            return;
+          }
+          if(selectedFrom===index){
+            selectedFrom = null;
+            render();
+            showToast("已取消選擇");
+            return;
+          }
+          if(!canMove(current, fromTop.size, selectedFrom, index)){
+            showToast("移動唔合法（不可覆同色、不可覆同大小或較大）");
+            return;
+          }
+          movePiece(current, fromTop.size, selectedFrom, index);
+          selectedFrom = null;
+
+          if(checkWin(current)){
+            gameOver = true;
+            render();
+            setTimeout(()=>alert(`勝利！${playerLabel(current)} 連成一線！`), 10);
+            return;
+          }
+          switchTurn();
+        }
+      }
     }
-  }
-}
 
     // Place logic
     function canPlace(player,size,index){
@@ -640,21 +594,19 @@ function onCellClick(index){
       const top = stack.length ? stack[stack.length-1] : null;
       if(!top) return true; // empty
       if(top.player === player) return false; // 不可覆同色
-      // 只可大吃小（嚴格大於）
-      return size > top.size;
+      return size > top.size; // 嚴格大於（大吃小）
     }
     function placePiece(player,size,index){
       const stack = board[index];
-      stack.push({player,size, justPlaced:true, justPressed: !!(stack.length) }); // 有覆蓋就加壓住效果
+      stack.push({player,size, justPlaced:true, justPressed: !!(stack.length) }); // 覆蓋→壓住效果
       render();
     }
 
     // Move logic
     function canMove(player,size,from,to){
       if(from===to) return false;
-      // 只可移動自己最上層
       const fromTop = topPiece(from);
-      if(!fromTop || fromTop.player!==player || fromTop.size!==size) return false;
+      if(!fromTop || fromTop.player!==player || fromTop.size!==size) return false; // 只可移動自己最上層
       const toTop = topPiece(to);
       if(!toTop) return true; // 移去空格
       if(toTop.player===player) return false; // 不可覆同色
@@ -664,8 +616,8 @@ function onCellClick(index){
       const fromStack = board[from];
       const moving = fromStack.pop(); // top piece
       const toStack = board[to];
-      moving.justPlaced = true; // 用同一動畫
-      moving.justPressed = !!(toStack.length); // 有目標就壓住一下
+      moving.justPlaced = true; // 用同一彈跳動畫
+      moving.justPressed = !!(toStack.length); // 有目標堆疊→壓住一下
       toStack.push(moving);
       render();
     }
@@ -715,3 +667,4 @@ function onCellClick(index){
   </script>
 </body>
 </html>
+``
