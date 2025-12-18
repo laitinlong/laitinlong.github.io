@@ -443,41 +443,56 @@
     swapFirstBtn.addEventListener("click", ()=>resetGame(true));
 
     // --- Rendering ---
-    function render(){
-      // Turn chip
-      turnDot.className = "dot " + (current==="blue"?"blue":"orange");
-      turnText.textContent = current==="blue" ? "藍" : "橙";
 
-      // Board: render top piece only (無堆疊視覺)
-      for(let i=0;i<9;i++){
-        const cellEl = boardEl.children[i];
-        // clear previous top visual
-        const old = cellEl.querySelector(".piece");
-        if(old) old.remove();
-        const top = topPiece(i);
-        if(top){
-          const p = document.createElement("div");
-          p.className = `piece ${top.player==='blue'?'blue-piece':'orange-piece'} size-${top.size}`;
-          if(top.justPlaced) p.classList.add("bounce");
-          if(top.justPressed) p.classList.add("press");
-          cellEl.appendChild(p);
-          // consume flags
-          delete top.justPlaced;
-          delete top.justPressed;
-        }
-        // If selectedFrom highlight? —— PVP 無提示：不高亮
+function render(){
+  // Turn chip
+  turnDot.className = "dot " + (current==="blue"?"blue":"orange");
+  turnText.textContent = current==="blue" ? "藍" : "橙";
+
+  // Board: render top piece only
+  for(let i=0;i<9;i++){
+    const cellEl = boardEl.children[i];
+
+    // 先清除舊視覺
+    const old = cellEl.querySelector(".piece");
+    if(old) old.remove();
+    cellEl.classList.remove("selected"); // ✅ 清除格子選中效果
+
+    const top = topPiece(i);
+    if(top){
+      const p = document.createElement("div");
+      p.className = `piece ${top.player==='blue'?'blue-piece':'orange-piece'} size-${top.size}`;
+
+      // 原有動畫旗標
+      if(top.justPlaced) p.classList.add("bounce");
+      if(top.justPressed) p.classList.add("press");
+
+      // ✅ 新增：如果此格是「已選中準備移動」的格子，套用選中效果
+      if(selectedFrom === i && top.player === current){
+        p.classList.add("selected");                 // 棋子選中樣式
+        cellEl.classList.add("selected");            // 格子邊框加粗
+        if(top.player === "orange") p.classList.add("orange-ring"); // 橙方光暈
       }
 
-      // Trays count & blink
-      [1,2,3].forEach(s=>{
-        const cb = document.getElementById(`count-blue-${s}`);
-        const co = document.getElementById(`count-orange-${s}`);
-        cb.textContent = `x ${counts.blue[s]}`;
-        co.textContent = `x ${counts.orange[s]}`;
-        cb.classList.toggle("zero", counts.blue[s]===0);
-        co.classList.toggle("zero", counts.orange[s]===0);
-      });
+      cellEl.appendChild(p);
+
+      // consume flags
+      delete top.justPlaced;
+      delete top.justPressed;
     }
+  }
+
+  // Trays count & blink（保持不變）
+  [1,2,3].forEach(s=>{
+    const cb = document.getElementById(`count-blue-${s}`);
+    const co = document.getElementById(`count-orange-${s}`);
+    cb.textContent = `x ${counts.blue[s]}`;
+    co.textContent = `x ${counts.orange[s]}`;
+    cb.classList.toggle("zero", counts.blue[s]===0);
+    co.classList.toggle("zero", counts.orange[s]===0);
+  });
+}
+``
 
     function updateModeButtons(){
       modePlaceBtn.classList.toggle("primary", mode==="place");
