@@ -93,7 +93,7 @@
       background: var(--orange);
       background-image:
         repeating-linear-gradient(0deg, rgba(255,255,255,.65) 0 2px, transparent 2px 7px),
-        repeating-linear-gradient(90deg, rgba(255,255,255,.65) 0 2px, transparent 2px 7px);
+        repeating-linear-gradient(90deg, rgba(255,255,255,.65) 0 2px, transparent 2px 8px);
     }
 
     /* Rules */
@@ -443,7 +443,7 @@
       boardEl.appendChild(c);
     }
 
-    // Tray selection（支援改變主意：再次點同一按鈕可取消；或點棋盤自己的棋子改為移動）
+    // Tray selection（支援改變主意：再次點同一按鈕可取消；也可點棋盤移動）
     document.querySelectorAll(".tray-btn").forEach(btn=>{
       btn.addEventListener("click", ()=>{
         if(gameOver) return;
@@ -457,7 +457,7 @@
           return;
         }
 
-        // ✅ 再次點同一個已選按鈕 → 取消出棋，保留改為移動的空間
+        // 再次點同一個已選按鈕 → 取消出棋
         if(isActive && selectedSize === size){
           selectedSize = null;
           btn.classList.remove("active");
@@ -465,14 +465,14 @@
           return;
         }
 
-        // 揀新大小
+        // 揀新大小（進入放置意圖）
         selectedSize = size;
         // 改為出棋時，清除任何移動選擇
         if(selectedFrom !== null){ selectedFrom = null; render(); }
         // 托盤按鈕高亮
         document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("active"));
         btn.classList.add("active");
-        showToast(`已選擇：${playerLabel(player)} 的${sizeNames[size]}（點棋盤落子；或點自己棋子改為移動）`);
+        showToast(`已選擇：${playerLabel(player)} 的${sizeNames[size]}（點棋盤落子；如要改為移動，可重按托盤取消）`);
       });
     });
 
@@ -556,19 +556,8 @@
 
       const tp = topPiece(index);
 
-      // ✅ 已選托盤大小（準備放置）時：
+      // 1) 已在托盤選了大小 → 嘗試放置（允許同色大覆細）
       if(selectedSize !== null){
-        // 如果點到自己最上層棋子 → 改為移動（不進行落子）
-        if(tp && tp.player === current){
-          selectedFrom = index;
-          selectedSize = null;
-          clearTrayActive();
-          render();
-          showToast(`已改為移動：選中第 ${index+1} 格（${sizeNames[tp.size]}），再點目標格`);
-          return;
-        }
-
-        // 否則照常嘗試放置（允許同色大覆細）
         if(!canPlace(current, selectedSize, index)){
           showToast("呢步唔合法（不可覆同大小或較大）");
           return;
@@ -587,7 +576,7 @@
         return;
       }
 
-      // 未選大小 → 移動流程
+      // 2) 未選大小 → 移動流程
       // Step1: 未選來源格 → 點自己最上層棋子以選中
       if(selectedFrom === null){
         if(!tp || tp.player !== current){
@@ -719,5 +708,5 @@
   })();
   </script>
 </body>
-</html>
+</
 
