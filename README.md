@@ -1,10 +1,10 @@
 
-
+<!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
-  <title>[超級過三關] PVP</title>
+  <title>[超級過三關] PVP / PVE</title>
   <style>
     :root{
       --blue:#1e90ff;
@@ -135,16 +135,15 @@
       transition: transform .18s ease, filter .18s ease, box-shadow .18s ease, opacity .18s ease;
       will-change: transform;
     }
-    /* sizes: 更大差距的直徑 */
+    /* sizes */
     .size-1{ width:55%; height:55%; }
     .size-2{ width:72%; height:72%; }
     .size-3{ width:95%; height:95%; }
 
-    /* texture: 圈紋 vs 十字紋（顏色由玩家決定） */
     .blue-piece{
       background: var(--blue);
       background-image: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.70) 0 2px, transparent 2px 8px);
-      border: 2px solid #0c6fd3; /* 基準，稍後按大小覆蓋粗度 */
+      border: 2px solid #0c6fd3;
     }
     .orange-piece{
       background: var(--orange);
@@ -153,7 +152,6 @@
         repeating-linear-gradient(90deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px);
       border: 2px solid #d36a00;
     }
-    /* 邊框粗度隨大小改變（更易分辨） */
     .blue-piece.size-1{ border-width: 2px; }
     .blue-piece.size-2{ border-width: 4px; }
     .blue-piece.size-3{ border-width: 6px; }
@@ -161,7 +159,6 @@
     .orange-piece.size-2{ border-width: 4px; }
     .orange-piece.size-3{ border-width: 6px; }
 
-    /* 中央尺寸標籤：小／中／大 */
     .size-badge{
       position:absolute;
       left:50%; top:50%; transform: translate(-50%,-50%);
@@ -174,12 +171,10 @@
       pointer-events:none;
       user-select:none;
     }
-    /* 依大小調整字級與內距 */
     .piece.size-1 .size-badge{ font-size: 12px; padding: 2px 6px; }
     .piece.size-2 .size-badge{ font-size: 14px; padding: 3px 8px; }
     .piece.size-3 .size-badge{ font-size: 16px; padding: 4px 10px; }
 
-    /* Animations */
     @keyframes bounceIn{
       0%{ transform: translate(-50%,-50%) scale(.85); filter:brightness(1); }
       50%{ transform: translate(-50%,-50%) scale(1.06); }
@@ -197,10 +192,10 @@
     .bounce{ animation: bounceIn .28s ease-out; }
     .press{ animation: pressDown .28s ease-out; }
 
-    /* --- 選中顏色提示（強烈） --- */
+    /* 強烈選中提示 */
     .cell.selected { box-shadow: inset 0 0 0 3px #888; }
     .piece.selected {
-      border-width: calc(2px + 2px); /* 在原粗度上再加強效果 */
+      border-width: calc(2px + 2px);
       filter: saturate(1.2) brightness(1.06);
       transform: translate(-50%,-50%) scale(1.05);
     }
@@ -210,7 +205,7 @@
       left: 50%; top: 50%; transform: translate(-50%,-50%);
       width: 100%; height: 100%;
       border-radius: 50%;
-      background: rgba(30,144,255, .25); /* 藍方覆蓋色 */
+      background: rgba(30,144,255, .25);
       pointer-events: none;
     }
     .piece.selected.orange-fill::before { background: rgba(255,140,0, .28); }
@@ -220,7 +215,7 @@
       left: 50%; top: 50%; transform: translate(-50%,-50%);
       width: 115%; height: 115%;
       border-radius: 50%;
-      box-shadow: 0 0 0 4px rgba(30,144,255,.45); /* 藍方光暈 */
+      box-shadow: 0 0 0 4px rgba(30,144,255,.45);
       animation: pulseRingStrong 1.1s ease-in-out infinite;
       pointer-events: none;
     }
@@ -274,7 +269,6 @@
         repeating-linear-gradient(90deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px);
       border:2px solid #d36a00;
     }
-    /* mini 邊框粗度依大小 */
     .mini.blue.size-1{ border-width:2px; }
     .mini.blue.size-2{ border-width:4px; }
     .mini.blue.size-3{ border-width:6px; }
@@ -282,7 +276,6 @@
     .mini.orange.size-2{ border-width:4px; }
     .mini.orange.size-3{ border-width:6px; }
 
-    /* mini 尺寸標籤 */
     .mini-badge{
       position:absolute;
       left:50%; top:50%; transform: translate(-50%,-50%);
@@ -303,10 +296,8 @@
     .left{ grid-area:left; }
     .right{ grid-area:right; }
 
-    /* Footer */
     .footer{ grid-area:footer; text-align:center; color:#666; font-size:12px; }
 
-    /* Toast message */
     .toast{
       position:fixed; left:50%; bottom:18px; transform: translateX(-50%);
       background:#000; color:#fff; padding:10px 14px; border-radius:999px; font-size:13px;
@@ -320,7 +311,7 @@
     <!-- Header -->
     <div class="header">
       <h1 class="title">[超級過三關]</h1>
-      <div class="subtitle">與朋友一起同樂 · PVP（同一裝置兩人）</div>
+      <div class="subtitle">與朋友一起同樂 · PVP / PVE（同一裝置）</div>
 
       <div class="controls">
         <span class="status">
@@ -330,6 +321,26 @@
             <span id="turnText"></span>
           </span>
         </span>
+
+        <!-- === AI 新增：模式 / 參數控制 === -->
+        <label class="chip">
+          模式：
+          <select id="modeSelect" style="margin-left:6px">
+            <option value="pvp">玩家 vs 玩家</option>
+            <option value="pve">玩家 vs 電腦</option>
+          </select>
+        </label>
+        <label class="chip">
+          AI 深度：<input id="aiDepth" type="number" min="1" max="5" value="3" style="width:60px;margin-left:6px" />
+        </label>
+        <label class="chip">
+          預測溫度 τ：<input id="aiTau" type="number" step="0.1" min="0.1" max="5" value="1.0" style="width:70px;margin-left:6px" />
+        </label>
+        <label class="chip">
+          學習率 η：<input id="aiLr" type="number" step="0.01" min="0.01" max="1" value="0.15" style="width:70px;margin-left:6px" />
+        </label>
+        <button id="resetModelBtn" class="btn">重置AI學習</button>
+
         <button id="resetBtn" class="btn">重置</button>
         <button id="swapFirstBtn" class="btn">換邊先手</button>
       </div>
@@ -404,7 +415,7 @@
     </div>
 
     <!-- Footer -->
-    <div class="footer">更似實體棋 · 大中小更易分辨（直徑、邊框、標籤） · 無提示 PVP · 動畫：彈跳/壓住 · 同色大覆細允許 · 可隨時改為移動</div>
+    <div class="footer">更似實體棋 · 大中小更易分辨（直徑、邊框、標籤） · PVP / PVE · 動畫：彈跳/壓住 · 同色大覆細允許 · 可隨時改為移動</div>
 
     <!-- Toast -->
     <div id="toast" class="toast" aria-live="polite"></div>
@@ -426,6 +437,15 @@
     let selectedFrom = null;   // 準備移動的來源格 index
     let gameOver = false;
 
+    // === AI 新增 ===
+    let mode = "pvp";                    // 'pvp' or 'pve'
+    const AI = { side: "orange" };       // 預設 AI 是橙方（可改為 "blue"）
+    let aiDepth = 3;                     // 搜索深度
+    let aiTau   = 1.0;                   // 預測溫度 τ
+    let aiLr    = 0.15;                  // 學習率 η
+    const MODEL_KEY = "super3_ai_opponent_weights_v1";
+    let weights = loadWeights() || initWeights();
+
     // --- Elements ---
     const boardEl = document.getElementById("board");
     const toastEl = document.getElementById("toast");
@@ -433,6 +453,13 @@
     const swapFirstBtn = document.getElementById("swapFirstBtn");
     const turnDot      = document.getElementById("turnDot");
     const turnText     = document.getElementById("turnText");
+
+    // === AI 控件元素 ===
+    const modeSelect     = document.getElementById("modeSelect");
+    const aiDepthInput   = document.getElementById("aiDepth");
+    const aiTauInput     = document.getElementById("aiTau");
+    const aiLrInput      = document.getElementById("aiLr");
+    const resetModelBtn  = document.getElementById("resetModelBtn");
 
     // Build board cells
     for(let i=0;i<9;i++){
@@ -454,6 +481,12 @@
         if(player !== current){ showToast("未到你嗰邊喔"); return; }
         if(counts[player][size] <= 0){
           showToast(`${playerLabel(player)} 的 ${sizeNames[size]} 已用完`);
+          return;
+        }
+
+        // PvE: 禁止 AI 回合的人為操作
+        if(mode === "pve" && current === AI.side){
+          showToast("AI 正在思考中…");
           return;
         }
 
@@ -480,6 +513,20 @@
     resetBtn.addEventListener("click", ()=>resetGame(false));
     swapFirstBtn.addEventListener("click", ()=>resetGame(true));
 
+    // === AI 控制事件 ===
+    modeSelect.addEventListener("change", ()=>{
+      mode = modeSelect.value;
+      render();
+      if(mode === "pve" && current === AI.side){
+        // 若換成 PvE 且正好輪到 AI → 立即思考
+        setTimeout(aiPlay, 150);
+      }
+    });
+    aiDepthInput.addEventListener("change", ()=>{ aiDepth = clamp(parseInt(aiDepthInput.value||"3",10),1,5); aiDepthInput.value = aiDepth; });
+    aiTauInput.addEventListener("change", ()=>{ aiTau = clamp(parseFloat(aiTauInput.value||"1.0"),0.1,5); aiTauInput.value = aiTau.toFixed(2); });
+    aiLrInput.addEventListener("change", ()=>{ aiLr = clamp(parseFloat(aiLrInput.value||"0.15"),0.01,1); aiLrInput.value = aiLr.toFixed(2); });
+    resetModelBtn.addEventListener("click", ()=>{ resetWeights(); alert("AI 對手模型已重置"); });
+
     // --- Rendering ---
     function ensureSelectionValid(){
       if(selectedFrom !== null){
@@ -495,7 +542,8 @@
 
       // Turn chip
       turnDot.className = "dot " + (current==="blue"?"blue":"orange");
-      turnText.textContent = current==="blue" ? "藍" : "橙";
+      const aiFlag = (mode==="pve" && current===AI.side) ? "（AI）" : "";
+      turnText.textContent = (current==="blue" ? "藍" : "橙") + aiFlag;
 
       // Board: render top piece only（無堆疊視覺）
       for(let i=0;i<9;i++){
@@ -554,6 +602,12 @@
     function onCellClick(index){
       if(gameOver) return;
 
+      // PvE：AI 的回合禁止玩家操作
+      if(mode === "pve" && current === AI.side){
+        showToast("AI 正在思考中…");
+        return;
+      }
+
       const tp = topPiece(index);
 
       // 1) 已在托盤選了大小 → 嘗試放置（允許同色大覆細）
@@ -562,9 +616,16 @@
           showToast("呢步唔合法（不可覆同大小或較大）");
           return;
         }
+        const prevState = cloneState(); // *** 給 AI 學習用
+        const actionObj = {type:"place", player:current, size:selectedSize, to:index};
         placePiece(current, selectedSize, index);
         counts[current][selectedSize]--;
         selectedSize = null; clearTrayActive();
+
+        // PvE：人類（藍方）動作 → AI 線上學習
+        if(mode==="pve" && current!==AI.side){
+          learnFromActual(prevState, actionObj);
+        }
 
         if(checkWin(current)){
           gameOver = true;
@@ -616,8 +677,15 @@
       }
 
       // 合法移動
+      const prevState = cloneState(); // *** 給 AI 學習用
+      const actionObj = {type:"move", player:current, size:fromTop.size, from:selectedFrom, to:index};
       movePiece(current, fromTop.size, selectedFrom, index);
       selectedFrom = null;
+
+      // PvE：人類（藍方）動作 → AI 線上學習
+      if(mode==="pve" && current!==AI.side){
+        learnFromActual(prevState, actionObj);
+      }
 
       if(checkWin(current)){
         gameOver = true;
@@ -639,6 +707,8 @@
       const stack = board[index];
       stack.push({player,size, justPlaced:true, justPressed: !!(stack.length) }); // 覆蓋→壓住效果
       render();
+      // PvE：AI自動下棋（若輪到AI）
+      if(mode==="pve" && current===AI.side && !gameOver) setTimeout(aiPlay, 220);
     }
 
     // Move logic（允許同色大覆細）
@@ -658,10 +728,13 @@
       moving.justPressed = !!(toStack.length); // 有目標堆疊→壓住一下
       toStack.push(moving);
       render();
+      // PvE：AI自動下棋（若輪到AI）
+      if(mode==="pve" && current===AI.side && !gameOver) setTimeout(aiPlay, 220);
     }
 
     // Helpers
     function topPiece(index){ const s = board[index]; return s.length ? s[s.length-1] : null; }
+    function playerLabel(p){ return p==="blue" ? "藍" : "橙"; }
 
     function checkWin(player){
       return winLines.some(line=>{
@@ -686,9 +759,9 @@
       if(swapFirst) current = (current==="blue") ? "orange" : "blue";
       render();
       showToast(`已重置（先手：${playerLabel(current)}）`);
+      // PvE：若重置後是 AI 先手 → 立即思考
+      if(mode==="pve" && current===AI.side) setTimeout(aiPlay, 200);
     }
-
-    function playerLabel(p){ return p==="blue" ? "藍" : "橙"; }
 
     function clearTrayActive(){
       document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("active"));
@@ -703,10 +776,314 @@
       toastTimer = setTimeout(()=>toastEl.classList.remove("show"), 1200);
     }
 
+    // === AI：對手模型 + 搜索整合 ===
+
+    function initWeights(){
+      // 5 個特徵權重： [立即勝, 阻擋對手立即勝, 中心, 兩連威脅, 覆蓋對手]
+      return [0.9, 0.7, 0.25, 0.55, 0.45];
+    }
+    function saveWeights(w){ localStorage.setItem(MODEL_KEY, JSON.stringify(w)); }
+    function loadWeights(){
+      const raw = localStorage.getItem(MODEL_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }
+    function resetWeights(){
+      weights = initWeights();
+      saveWeights(weights);
+    }
+
+    // --- 純狀態工具（供搜索與學習用，不碰 DOM） ---
+    function cloneState(){
+      const b = board.map(stack => stack.map(p => ({player:p.player, size:p.size})));
+      const c = { blue:{1:counts.blue[1],2:counts.blue[2],3:counts.blue[3]},
+                  orange:{1:counts.orange[1],2:counts.orange[2],3:counts.orange[3]} };
+      return { board:b, counts:c, current };
+    }
+    function topAt(state, idx){
+      const s = state.board[idx];
+      return s.length ? s[s.length-1] : null;
+    }
+    function isWinState(state, player){
+      return winLines.some(line => line.every(i => {
+        const t = topAt(state, i);
+        return t && t.player === player;
+      }));
+    }
+
+    function canPlaceState(state, player, size, idx){
+      const top = topAt(state, idx);
+      if(!top) return true;
+      return size > top.size;
+    }
+    function canMoveState(state, player, size, from, to){
+      if(from===to) return false;
+      const fromTop = topAt(state, from);
+      if(!fromTop || fromTop.player!==player || fromTop.size!==size) return false;
+      const toTop = topAt(state, to);
+      if(!toTop) return true;
+      return size > toTop.size;
+    }
+    function applyActionState(state, action){
+      const ns = {
+        board: state.board.map(stack => stack.map(p => ({player:p.player, size:p.size}))),
+        counts: { blue:{...state.counts.blue}, orange:{...state.counts.orange} },
+        current: state.current
+      };
+      if(action.type === "place"){
+        ns.board[action.to].push({player:action.player, size:action.size});
+        ns.counts[action.player][action.size]--;
+      }else{
+        const moving = ns.board[action.from].pop();
+        ns.board[action.to].push(moving);
+      }
+      ns.current = (ns.current==="blue") ? "orange" : "blue";
+      return ns;
+    }
+
+    function legalActions(state, player){
+      const acts = [];
+
+      // 放置
+      [1,2,3].forEach(s=>{
+        if(state.counts[player][s] > 0){
+          for(let idx=0; idx<9; idx++){
+            if(canPlaceState(state, player, s, idx)){
+              acts.push({type:"place", player, size:s, to:idx});
+            }
+          }
+        }
+      });
+
+      // 移動（只可移動自己最上層）
+      for(let from=0; from<9; from++){
+        const t = topAt(state, from);
+        if(!t || t.player!==player) continue;
+        const sz = t.size;
+        for(let to=0; to<9; to++){
+          if(from===to) continue;
+          if(canMoveState(state, player, sz, from, to)){
+            acts.push({type:"move", player, size:sz, from, to});
+          }
+        }
+      }
+      return acts;
+    }
+
+    function immediateWinCount(state, player){
+      const acts = legalActions(state, player);
+      let cnt = 0;
+      for(const a of acts){
+        const ns = applyActionState(state, a);
+        if(isWinState(ns, player)) cnt++;
+      }
+      return cnt;
+    }
+
+    // 特徵：φ(state, action, player, opp)
+    function featuresOnAction(state, action, player){
+      const opp = (player==="blue") ? "orange" : "blue";
+      const next = applyActionState(state, action);
+
+      // 1) 立即勝
+      const f_winNow = isWinState(next, player) ? 1 : 0;
+
+      // 2) 阻擋對手立即勝（差分）
+      const oppWinsBefore = immediateWinCount(state, opp);
+      const oppWinsAfter  = immediateWinCount(next,  opp);
+      const f_block = Math.max(0, oppWinsBefore - oppWinsAfter);
+
+      // 3) 中心控制（落子/落到中心）
+      const center = 4;
+      const toIdx = (action.type==="place") ? action.to : action.to;
+      const f_center = (toIdx === center) ? 1 : 0;
+
+      // 4) 兩連威脅（只看頂層）
+      let f_two = 0;
+      for(const line of winLines){
+        const cs = line.map(i=>topAt(next,i));
+        const pc = cs.filter(t=>t && t.player===player).length;
+        const oc = cs.filter(t=>t && t.player===opp).length;
+        if(oc===0 && pc===2) f_two += 1;
+      }
+
+      // 5) 覆蓋對手（若目標頂層存在且是對手）
+      let f_coverOpp = 0;
+      if(action.type==="place"){
+        const topBefore = topAt(state, action.to);
+        if(topBefore && topBefore.player===opp && action.size>topBefore.size) f_coverOpp = 1;
+      }else{
+        const topBefore = topAt(state, action.to);
+        if(topBefore && topBefore.player===opp && action.size>topBefore.size) f_coverOpp = 1;
+      }
+
+      return [f_winNow, f_block, f_center, f_two, f_coverOpp];
+    }
+
+    function softmax(xs, t=1.0){
+      const m = Math.max(...xs);
+      const exps = xs.map(v => Math.exp((v - m) / t));
+      const s = exps.reduce((a,b)=>a+b, 0);
+      return exps.map(v => v/s);
+    }
+    function dot(a,b){ return a.reduce((s, v, i) => s + v*b[i], 0); }
+
+    // 對手預測（預測「藍方」在此局面下最可能的行動）
+    function predictOpponent(state){
+      const player = (AI.side==="orange") ? "blue" : "orange"; // 模型鎖定對手（人類）
+      const acts = legalActions(state, player);
+      if(acts.length === 0) return {moves:[], probs:[]};
+      const scores = acts.map(a => dot(weights, featuresOnAction(state, a, player)));
+      const probs  = softmax(scores, aiTau);
+      return { moves: acts, probs };
+    }
+
+    // 線上學習（負對數似然的近似梯度）
+    function learnFromActual(prevState, actualAction){
+      // 只在 PvE，且人類（對手 AI 的一方）行動時學習
+      const opponent = (AI.side==="orange") ? "blue" : "orange";
+      if(actualAction.player !== opponent) return;
+
+      const pred = predictOpponent(prevState);
+      const {moves, probs} = pred;
+      if(moves.length===0) return;
+
+      // Δw = η * (φ(actual) − Σ p(m) φ(m))
+      const phiActual = featuresOnAction(prevState, actualAction, opponent);
+      const expectedPhi = new Array(weights.length).fill(0);
+      for(let i=0;i<moves.length;i++){
+        const phi = featuresOnAction(prevState, moves[i], opponent);
+        for(let k=0;k<weights.length;k++){
+          expectedPhi[k] += probs[i] * phi[k];
+        }
+      }
+      for(let k=0;k<weights.length;k++){
+        weights[k] += aiLr * (phiActual[k] - expectedPhi[k]);
+      }
+      saveWeights(weights);
+    }
+
+    // 評估函數（非終局時）
+    function evaluateState(state, aiPlayer){
+      const opp = (aiPlayer==="blue") ? "orange" : "blue";
+      if(isWinState(state, aiPlayer)) return 10000;
+      if(isWinState(state, opp)) return -10000;
+
+      let score = 0;
+      // 中心佔領
+      const tCenter = topAt(state,4);
+      if(tCenter){
+        if(tCenter.player===aiPlayer) score += 12;
+        else score -= 12;
+      }
+      // 兩連威脅
+      for(const line of winLines){
+        const cs = line.map(i=>topAt(state,i));
+        const pc = cs.filter(t=>t && t.player===aiPlayer).length;
+        const oc = cs.filter(t=>t && t.player===opp).length;
+        if(oc===0) score += pc*pc*5;  // 我方連線加分（平方）
+        if(pc===0) score -= oc*oc*5;  // 對方連線扣分
+      }
+      // 可覆蓋機會（潛在吃子）
+      let coverChances = 0;
+      const acts = legalActions(state, aiPlayer);
+      for(const a of acts){
+        const toIdx = (a.type==="place") ? a.to : a.to;
+        const topBefore = topAt(state, toIdx);
+        if(topBefore && topBefore.player===opp && a.size>topBefore.size) coverChances++;
+      }
+      score += coverChances * 3;
+
+      return score;
+    }
+
+    // Minimax + α-β；對手節點用「預測排序」
+    function minimax(state, depth, isMax, aiPlayer, alpha, beta){
+      const opp = (aiPlayer==="blue") ? "orange" : "blue";
+
+      if(isWinState(state, aiPlayer)) return 10000 + depth;
+      if(isWinState(state, opp))      return -10000 - depth;
+      if(depth===0) return evaluateState(state, aiPlayer);
+
+      if(isMax){
+        let v = -Infinity;
+        const acts = legalActions(state, aiPlayer);
+        for(const a of acts){
+          const ns = applyActionState(state, a);
+          v = Math.max(v, minimax(ns, depth-1, false, aiPlayer, alpha, beta));
+          alpha = Math.max(alpha, v);
+          if(beta <= alpha) break;
+        }
+        return v;
+      }else{
+        // 對手節點：按 OpponentModel 機率排序，僅擴展前 K（降分支）
+        const pred = predictOpponent(state);
+        const order = pred.moves.map((m,i)=>({m, p:pred.probs[i]}))
+                                .sort((a,b)=> b.p - a.p);
+        const K = Math.min(6, order.length);
+        let v = Infinity;
+        for(let i=0;i<K;i++){
+          const a = order[i].m;
+          const ns = applyActionState(state, a);
+          v = Math.min(v, minimax(ns, depth-1, true, aiPlayer, alpha, beta));
+          beta = Math.min(beta, v);
+          if(beta <= alpha) break;
+        }
+        return v;
+      }
+    }
+
+    function aiChooseAction(state, aiPlayer, maxDepth){
+      let best = null, bestVal = -Infinity;
+      const acts = legalActions(state, aiPlayer);
+      if(acts.length===0) return null;
+      for(const a of acts){
+        const ns = applyActionState(state, a);
+        const val = minimax(ns, maxDepth-1, false, aiPlayer, -Infinity, Infinity);
+        if(val > bestVal){ bestVal = val; best = a; }
+      }
+      return best;
+    }
+
+    function applyActionToGlobals(action){
+      if(action.type==="place"){
+        placePiece(action.player, action.size, action.to);
+        counts[action.player][action.size]--;
+      }else{
+        movePiece(action.player, action.size, action.from, action.to);
+      }
+    }
+
+    function aiPlay(){
+      if(gameOver || mode!=="pve") return;
+      if(current !== AI.side) return;
+      // 思考
+      const state = cloneState();
+      const action = aiChooseAction(state, AI.side, aiDepth);
+      if(!action){
+        // 沒合法步（理論上極少見）→ 切回人類
+        current = (current==="blue") ? "orange" : "blue";
+        render();
+        return;
+      }
+      applyActionToGlobals(action);
+
+      // 勝負判定
+      const aiWon = checkWin(AI.side);
+      if(aiWon){
+        gameOver = true;
+        render();
+        setTimeout(()=>alert(`勝利！${playerLabel(AI.side)}（AI）連成一線！`), 10);
+        return;
+      }
+      // 切回人類
+      switchTurn();
+    }
+
+    function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
     // Init
     render();
   })();
   </script>
 </body>
 </html>
-
