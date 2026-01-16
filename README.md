@@ -339,65 +339,66 @@
     });
 
     // --- 劇本互動 ---
-    function onCellClick(index){
-      if(gameOver) return;
 
-      if(!scriptedMode){
-        // 自由模式（可照 PVP 規則玩）
-        handleFreePlay(index);
+function onCellClick(index){
+  if(gameOver) return;
+
+  if(!scriptedMode){
+    // 自由模式（可照 PVP 規則玩）
+    handleFreePlay(index);
+    return;
+  }
+
+  const mv = SCRIPT[stepIndex];
+  if(!mv){ showToast("劇本已完"); return; }
+
+  if(mv.actor==='blue'){
+    if(mv.type==='place'){
+      // （原本的落子邏輯不變）
+      if(selectedSize === null){ showToast(`請先揀「${sizeNames[mv.size]}」`); return; }
+      if(selectedSize !== mv.size){ showToast(`呢步要用「${sizeNames[mv.size]}」`); return; }
+      if(index !== mv.to){ showToast(`請點提示格：第 ${mv.to+1} 格`); return; }
+      if(!canPlace('blue', mv.size, index)){ showToast("唔合法：只能落空格或大吃小"); return; }
+
+      placePiece('blue', mv.size, index);
+      counts.blue[mv.size]--;
+      selectedSize = null; clearTrayActive();
+      stepIndex++;
+
+      if(checkWin('blue')){ gameOver=true; render(); setTimeout(()=>alert("勝利！藍 連成一線！"),10); return; }
+      switchTurn();
+      setTimeout(()=>runAIMoveIfAny(), 650);
+      return;
+    }else{
+      // ⭐ 單擊目標格即移動（不需先點來源）
+      if(index !== mv.to){
+        showToast(`請點目標格：第 ${mv.to+1} 格`);
+        return;
+      }
+      // 驗證來源頂層是否仍然是指定棋子
+      const top = topPiece(mv.from);
+      if(!top || top.player!=='blue' || top.size!==mv.size){
+        showToast("來源位置唔正確或已被覆蓋，請重播劇本");
+        return;
+      }
+      if(!canMove('blue', mv.size, mv.from, mv.to)){
+        showToast("移動唔合法（只能大吃小或移去空格）");
         return;
       }
 
-      const mv = SCRIPT[stepIndex];
-      if(!mv){ showToast("劇本已完"); return; }
+      movePiece('blue', mv.size, mv.from, mv.to);
+      stepIndex++;
 
-      if(mv.actor==='blue'){
-        if(mv.type==='place'){
-          // 要先揀對大小
-          if(selectedSize === null){ showToast(`請先揀「${sizeNames[mv.size]}」`); return; }
-          if(selectedSize !== mv.size){ showToast(`呢步要用「${sizeNames[mv.size]}」`); return; }
-          if(index !== mv.to){ showToast(`請點提示格：第 ${mv.to+1} 格`); return; }
-          if(!canPlace('blue', mv.size, index)){ showToast("唔合法：只能落空格或大吃小"); return; }
-
-          placePiece('blue', mv.size, index);
-          counts.blue[mv.size]--;
-          selectedSize = null; clearTrayActive();
-          stepIndex++;
-
-          if(checkWin('blue')){ gameOver=true; render(); setTimeout(()=>alert("勝利！藍 連成一線！"),10); return; }
-          switchTurn();
-          setTimeout(()=>runAIMoveIfAny(), 650);
-          return;
-        }else{
-          // 移動：先點來源，再點目標
-          if(selectedFrom===null){
-            if(index !== mv.from){ showToast(`請先點來源格：第 ${mv.from+1} 格`); return; }
-            const top = topPiece(index);
-            if(!top || top.player!=='blue' || top.size!==mv.size){ showToast("來源格頂層唔係你指定大小"); return; }
-            selectedFrom = index;
-            render();
-            showToast(`再點目標格：第 ${mv.to+1} 格`);
-            return;
-          }else{
-            if(index !== mv.to){ showToast(`請點目標格：第 ${mv.to+1} 格`); return; }
-            const top = topPiece(selectedFrom);
-            if(!top || top.player!=='blue' || top.size!==mv.size){ selectedFrom=null; render(); showToast("來源失效，請重選"); return; }
-            if(!canMove('blue', mv.size, selectedFrom, index)){ showToast("移動唔合法（只能大吃小或移去空格）"); return; }
-
-            movePiece('blue', mv.size, selectedFrom, index);
-            selectedFrom = null;
-            stepIndex++;
-
-            if(checkWin('blue')){ gameOver=true; render(); setTimeout(()=>alert("勝利！藍 連成一線！"),10); return; }
-            switchTurn();
-            setTimeout(()=>runAIMoveIfAny(), 650);
-            return;
-          }
-        }
-      }else{
-        showToast("請等待 AI 行動");
-      }
+      if(checkWin('blue')){ gameOver=true; render(); setTimeout(()=>alert("勝利！藍 連成一線！"),10); return; }
+      switchTurn();
+      setTimeout(()=>runAIMoveIfAny(), 650);
+      return;
     }
+  }else{
+    showToast("請等待 AI 行動");
+  }
+}
+
 
     function runAIMoveIfAny(){
       if(gameOver || stepIndex >= SCRIPT.length) { showNextHint(); return; }
