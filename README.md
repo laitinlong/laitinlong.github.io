@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
-  <title>[超級過三關] 玩家手動 · 劇本模式（6手勝）</title>
+  <title>[超級過三關] 玩家手動 · 劇本模式（按指定 13 步）</title>
   <style>
     :root{
       --blue:#1e90ff;
@@ -17,7 +17,7 @@
       --gap: 10px;
       --hint:#4caf50;
     }
-    *{box-sizing:border-box}
+    *{ box-sizing:border-box }
     body{
       margin:0;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
@@ -27,16 +27,13 @@
       padding:16px;
     }
     .app{
-      width:100%;
-      max-width:1100px;
-      display:grid;
+      width:100%; max-width:1100px;
+      display:grid; gap:16px; align-items:start;
       grid-template-columns: 1fr minmax(280px, 480px) 1fr;
       grid-template-areas:
         "header header header"
         "left   board  right"
         "footer footer footer";
-      gap:16px;
-      align-items:start;
     }
     @media (max-width: 900px){
       .app{
@@ -49,33 +46,21 @@
           "footer";
       }
     }
-
     .header{ grid-area:header; text-align:center; }
     .title{ font-weight:800; letter-spacing:.5px; font-size: clamp(20px, 4.5vw, 36px); margin:0; }
     .subtitle{ font-size: clamp(13px, 2.5vw, 16px); color:var(--muted); margin-top:4px; }
 
-    .controls{
-      margin-top:10px;
-      display:flex; flex-wrap:wrap; gap:8px; justify-content:center; align-items:center;
-    }
-    .btn{
-      border:1px solid #ccc; background:#fff; color:#222; padding:8px 12px; border-radius:10px;
-      cursor:pointer; transition: all .15s ease;
-    }
+    .controls{ margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; align-items:center; }
+    .btn{ border:1px solid #ccc; background:#fff; color:#222; padding:8px 12px; border-radius:10px; cursor:pointer; transition:.15s; }
     .btn:hover{ transform: translateY(-1px); box-shadow:0 3px 10px rgba(0,0,0,.08); }
     .btn:active{ transform: translateY(1px); }
-    .chip{
-      display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px;
-      background:#fff; border:1px solid #ddd; box-shadow:0 2px 8px rgba(0,0,0,.06); font-size:14px; font-weight:700;
-    }
-    .script-chip{
-      display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:10px;
-      background:#fff6e5; border:1px solid #ffd699; color:#a66a00; font-weight:700; font-size:13px;
-    }
+    .chip{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:#fff; border:1px solid #ddd; box-shadow:0 2px 8px rgba(0,0,0,.06); font-size:14px; font-weight:700; }
+    .script-chip{ display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:10px; background:#fff6e5; border:1px solid #ffd699; color:#a66a00; font-weight:700; font-size:13px; }
+
     .dot{ width:14px; height:14px; border-radius:50%; box-shadow: inset 0 0 0 2px rgba(255,255,255,.6); }
-    .dot.blue{ background: var(--blue);
-      background-image: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.65) 0 2px, transparent 2px 7px); }
-    .dot.orange{ background: var(--orange);
+    .dot.blue{ background:var(--blue);
+      background-image: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.65) 0 2px, transparent 2px 7px);}
+    .dot.orange{ background:var(--orange);
       background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.65) 0 2px, transparent 2px 7px),
                        repeating-linear-gradient(90deg, rgba(255,255,255,.65) 0 2px, transparent 2px 8px); }
 
@@ -141,6 +126,7 @@
     .tray{ background:#fff; border:1px solid #e6e6e6; border-radius:14px; padding:12px; box-shadow: 0 6px 16px rgba(0,0,0,.06); }
     .tray h3{ margin:0 0 8px; font-size:16px; display:flex; align-items:center; gap:8px; }
     .role{ display:inline-flex; align-items:center; gap:6px; }
+
     .tray-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
     .tray-btn{
       display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -184,7 +170,7 @@
     <!-- Header -->
     <div class="header">
       <h1 class="title">[超級過三關]</h1>
-      <div class="subtitle">玩家手動 · 藍第 6 手獲勝（AI：首選唔好輸＋吃子防守）</div>
+      <div class="subtitle">玩家手動 · 固定劇本（13 步）</div>
 
       <div class="controls">
         <span class="chip">
@@ -193,7 +179,7 @@
           <span id="turnText"></span>
         </span>
 
-        <span class="script-chip">劇本中 · 步驟 <span id="scriptStep">0</span>/11 · 請跟提示操作</span>
+        <span class="script-chip">劇本中 · 步驟 <span id="scriptStep">0</span>/13 · 請跟提示操作</span>
 
         <button id="restartScriptBtn" class="btn">重播劇本</button>
         <button id="exitScriptBtn" class="btn">退出劇本</button>
@@ -256,7 +242,7 @@
       </div>
     </div>
 
-    <div class="footer">跟住提示揀好大小再點棋盤格；AI 會自動走下一步。最後藍於第 6 手以 2–5–8 直線勝出。</div>
+    <div class="footer">跟住提示做：有移動（吃子）步要先點來源格再點目標格；AI 會自動跟住劇本落子／移動；第 13 步藍方放中間獲勝。</div>
 
     <div id="toast" class="toast" aria-live="polite"></div>
   </div>
@@ -277,27 +263,27 @@
     let selectedFrom = null;
     let gameOver = false;
 
-    // --- 劇本（玩家手動：藍按提示放子；AI 自動） ---
+    // --- 你提供的 13 步劇本（玩家手動：藍按提示操作；AI 自動） ---
     // actor: 'blue'|'orange', type: 'place'|'move', size: 1|2|3, to: 0..8, from(移動): 0..8
     const SCRIPT = [
-      {actor:'blue',   type:'place', size:3, to:4},
-      {actor:'orange', type:'place', size:3, to:0},
-      {actor:'blue',   type:'place', size:2, to:8},
-      {actor:'orange', type:'place', size:1, to:5},
-      {actor:'blue',   type:'place', size:1, to:2},
-      {actor:'orange', type:'place', size:2, to:6},     // 首選唔好輸：鋪墊防對角
-      {actor:'blue',   type:'place', size:2, to:1},
-      {actor:'orange', type:'move',  size:3, from:0, to:1}, // AI 調重兵到上中
-      {actor:'blue',   type:'place', size:1, to:3},     // 形成 fork
-      {actor:'orange', type:'place', size:2, to:6},     // 擋對角（若 6 已有橙2，這步仍合法? ← 前面已有2→6，這步即重覆？修正：這步保留為 2→6 的「保持」；實作上已存在則略過）
-      {actor:'blue',   type:'place', size:3, to:5}      // 吃 橙2，完成 2-5-8
+      {actor:'blue',   type:'place', size:3, to:4},        // 1 藍 大→中
+      {actor:'orange', type:'place', size:3, to:8},        // 2 橙 大→右下
+      {actor:'blue',   type:'place', size:3, to:2},        // 3 藍 大→右上
+      {actor:'orange', type:'place', size:2, to:6},        // 4 橙 中→左下
+      {actor:'blue',   type:'move',  size:3, from:2, to:6},// 5 藍 移 大 2→6（吃橙中）
+      {actor:'orange', type:'place', size:2, to:2},        // 6 橙 中→右上
+      {actor:'blue',   type:'move',  size:3, from:4, to:2},// 7 藍 移 大 4→2（吃橙中）
+      {actor:'orange', type:'place', size:3, to:4},        // 8 橙 大→中
+      {actor:'blue',   type:'place', size:1, to:0},        // 9 藍 小→左上
+      {actor:'orange', type:'move',  size:3, from:8, to:0},//10 橙 移 大 8→0（吃藍小）
+      {actor:'blue',   type:'place', size:2, to:8},        //11 藍 中→右下
+      {actor:'orange', type:'move',  size:3, from:4, to:8},//12 橙 移 大 4→8（吃藍中）
+      {actor:'blue',   type:'place', size:2, to:4}         //13 藍 中→中（勝）
     ];
-    // 註：第10步已於第6步用掉 2→6，因此第10步會檢測如已佔則跳過（不影響演出和勝利）。
-
     let stepIndex = 0;
-    let scriptedMode = true; // 玩家手動劇本：true
+    let scriptedMode = true; // 玩家手動劇本
 
-    // --- DOM 元素 ---
+    // --- DOM ---
     const boardEl = document.getElementById("board");
     const toastEl = document.getElementById("toast");
     const turnDot = document.getElementById("turnDot");
@@ -306,7 +292,7 @@
     const restartScriptBtn = document.getElementById("restartScriptBtn");
     const exitScriptBtn = document.getElementById("exitScriptBtn");
 
-    // 建立棋格
+    // 建立 9 個格
     for(let i=0;i<9;i++){
       const c = document.createElement("div");
       c.className = "cell";
@@ -322,8 +308,11 @@
         if(!scriptedMode){ showToast("已退出劇本，可自由對戰"); return; }
 
         const mv = SCRIPT[stepIndex];
-        if(!mv || mv.actor!=='blue' || mv.type!=='place'){
-          showToast("此步需在棋盤操作或等待 AI"); return;
+        if(!mv || mv.actor!=='blue'){
+          showToast("請按棋盤或等待 AI 行動"); return;
+        }
+        if(mv.type!=='place'){
+          showToast("此步是移動，請先點來源格再點目標格"); return;
         }
 
         const size = Number(btn.dataset.size);
@@ -334,7 +323,6 @@
           showToast(`藍的 ${sizeNames[size]} 已用完`); return;
         }
 
-        // 標記選擇，並高亮對應托盤
         selectedSize = size;
         document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("active"));
         btn.classList.add("active");
@@ -350,60 +338,101 @@
       showToast("已退出劇本，改為自由 PVP（規則不變）");
     });
 
-    // --- 互動邏輯 ---
+    // --- 劇本互動 ---
     function onCellClick(index){
       if(gameOver) return;
 
       if(!scriptedMode){
-        // 自由模式：保留完整 PVP 規則
+        // 自由模式（可照 PVP 規則玩）
         handleFreePlay(index);
         return;
       }
 
-      // 劇本：只有藍方 place 步由玩家動手
       const mv = SCRIPT[stepIndex];
       if(!mv){ showToast("劇本已完"); return; }
 
-      if(mv.actor==='blue' && mv.type==='place'){
-        // 必須先選對大小
-        if(selectedSize === null){
-          showToast(`請先揀 ${sizeNames[mv.size]}（托盤）`); return;
-        }
-        if(selectedSize !== mv.size){
-          showToast(`這步要用 ${sizeNames[mv.size]}，唔係 ${sizeNames[selectedSize]}`); return;
-        }
-        if(index !== mv.to){
-          showToast(`請按提示點：第 ${mv.to+1} 格`); return;
-        }
-        if(!canPlace('blue', mv.size, index)){
-          showToast("唔合法：只能大吃小或落空格"); return;
-        }
+      if(mv.actor==='blue'){
+        if(mv.type==='place'){
+          // 要先揀對大小
+          if(selectedSize === null){ showToast(`請先揀「${sizeNames[mv.size]}」`); return; }
+          if(selectedSize !== mv.size){ showToast(`呢步要用「${sizeNames[mv.size]}」`); return; }
+          if(index !== mv.to){ showToast(`請點提示格：第 ${mv.to+1} 格`); return; }
+          if(!canPlace('blue', mv.size, index)){ showToast("唔合法：只能落空格或大吃小"); return; }
 
-        // 執行玩家這步
-        placePiece('blue', mv.size, index);
-        counts.blue[mv.size]--;
-        selectedSize = null;
-        clearTrayActive();
-        stepIndex++;
+          placePiece('blue', mv.size, index);
+          counts.blue[mv.size]--;
+          selectedSize = null; clearTrayActive();
+          stepIndex++;
 
-        if(checkWin('blue')){
-          gameOver = true; render();
-          setTimeout(()=>alert("勝利！藍 連成一線！"),10);
+          if(checkWin('blue')){ gameOver=true; render(); setTimeout(()=>alert("勝利！藍 連成一線！"),10); return; }
+          switchTurn();
+          setTimeout(()=>runAIMoveIfAny(), 650);
           return;
+        }else{
+          // 移動：先點來源，再點目標
+          if(selectedFrom===null){
+            if(index !== mv.from){ showToast(`請先點來源格：第 ${mv.from+1} 格`); return; }
+            const top = topPiece(index);
+            if(!top || top.player!=='blue' || top.size!==mv.size){ showToast("來源格頂層唔係你指定大小"); return; }
+            selectedFrom = index;
+            render();
+            showToast(`再點目標格：第 ${mv.to+1} 格`);
+            return;
+          }else{
+            if(index !== mv.to){ showToast(`請點目標格：第 ${mv.to+1} 格`); return; }
+            const top = topPiece(selectedFrom);
+            if(!top || top.player!=='blue' || top.size!==mv.size){ selectedFrom=null; render(); showToast("來源失效，請重選"); return; }
+            if(!canMove('blue', mv.size, selectedFrom, index)){ showToast("移動唔合法（只能大吃小或移去空格）"); return; }
+
+            movePiece('blue', mv.size, selectedFrom, index);
+            selectedFrom = null;
+            stepIndex++;
+
+            if(checkWin('blue')){ gameOver=true; render(); setTimeout(()=>alert("勝利！藍 連成一線！"),10); return; }
+            switchTurn();
+            setTimeout(()=>runAIMoveIfAny(), 650);
+            return;
+          }
         }
-        switchTurn();
-
-        // AI 自動走下一步（若有）
-        setTimeout(()=>runAIMoveIfAny(), 650);
-        return;
+      }else{
+        showToast("請等待 AI 行動");
       }
-
-      // 非藍落子步（例如 AI 的回合或藍的移動步 —— 本劇本沒有藍移動）
-      showToast("請依提示操作或等待 AI");
     }
 
+    function runAIMoveIfAny(){
+      if(gameOver || stepIndex >= SCRIPT.length) { showNextHint(); return; }
+      const mv = SCRIPT[stepIndex];
+      if(mv.actor !== 'orange'){ showNextHint(); return; }
+
+      // 輪到 AI（顯示用）
+      current = 'orange'; render();
+
+      if(mv.type === 'place'){
+        if(!canPlace('orange', mv.size, mv.to)){
+          console.warn('AI 劇本 place 不合法，終止', mv);
+          showToast("（劇本錯誤：AI 放置不合法）");
+          return;
+        }
+        placePiece('orange', mv.size, mv.to);
+        counts.orange[mv.size]--;
+      }else{
+        const top = topPiece(mv.from);
+        if(!top || top.player!=='orange' || top.size!==mv.size || !canMove('orange', mv.size, mv.from, mv.to)){
+          console.warn('AI 劇本 move 不合法，終止', mv);
+          showToast("（劇本錯誤：AI 移動不合法）");
+          return;
+        }
+        movePiece('orange', mv.size, mv.from, mv.to);
+      }
+
+      if(checkWin('orange')){ gameOver=true; render(); setTimeout(()=>alert("橙勝出（AI）"),10); return; }
+      stepIndex++;
+      switchTurn();
+      showNextHint();
+    }
+
+    // --- 自由 PVP（退出劇本後） ---
     function handleFreePlay(index){
-      // 完整 PVP 流程（保持你原規則）
       const tp = topPiece(index);
       if(selectedSize !== null){
         if(!canPlace(current, selectedSize, index)){
@@ -434,43 +463,7 @@
       switchTurn();
     }
 
-    function runAIMoveIfAny(){
-      if(gameOver || stepIndex >= SCRIPT.length) { showNextHint(); return; }
-      const mv = SCRIPT[stepIndex];
-      if(mv.actor !== 'orange'){ showNextHint(); return; }
-
-      // 設定輪到 AI（顯示用）
-      current = 'orange'; render();
-
-      // 守規則執行：place / move
-      if(mv.type === 'place'){
-        // 特例：第10步 2→6 如早已在 #6 落過 2→6，則此步「等價重覆」，直接視為完成（不破壞觀感）
-        if(canPlace('orange', mv.size, mv.to)){
-          placePiece('orange', mv.size, mv.to);
-          counts.orange[mv.size]--;
-        }else{
-          // 若不能放（例如同等或更大頂住），此劇本步略過（不影響最後勝利演出）
-          console.warn('AI 劇本 place 被阻，略過', mv);
-        }
-      }else{
-        // move
-        const top = topPiece(mv.from);
-        if(top && top.player==='orange' && top.size===mv.size && canMove('orange', mv.size, mv.from, mv.to)){
-          movePiece('orange', mv.size, mv.from, mv.to);
-        }else{
-          console.warn('AI 劇本 move 不可行，略過', mv);
-        }
-      }
-
-      if(checkWin('orange')){ gameOver=true; render(); setTimeout(()=>alert("橙勝出（AI）"),10); return; }
-
-      // 下一步交回藍
-      stepIndex++;
-      switchTurn();
-      showNextHint();
-    }
-
-    // --- 渲染、規則與工具 ---
+    // --- 規則與渲染 ---
     function ensureSelectionValid(){
       if(selectedFrom !== null){
         const t = topPiece(selectedFrom);
@@ -581,20 +574,26 @@
       showToast("已重播劇本");
     }
 
-    // 藍方提示：高亮托盤大小與目標格
+    // 提示：高亮托盤大小與目標格；移動步高亮來源格（選中）與目標格
     function showNextHint(){
       clearHints();
       if(!scriptedMode || gameOver || stepIndex >= SCRIPT.length) return;
       const mv = SCRIPT[stepIndex];
-      if(mv.actor==='blue' && mv.type==='place'){
-        // 高亮托盤與目標格
-        highlightTray('blue', mv.size);
-        selectedSize = mv.size; // 預選大小，加速操作
-        const cell = boardEl.children[mv.to]; if(cell) cell.classList.add("hint");
-        showToast(`輪到你：落「${sizeNames[mv.size]}」→ 第 ${mv.to+1} 格`);
-      }else if(mv.actor==='orange'){
-        // 提示 AI 將行動
-        showToast(`AI 準備：${mv.type==='place'?'落子':'移動'}「${sizeNames[mv.size]}」`);
+      if(mv.actor==='blue'){
+        if(mv.type==='place'){
+          highlightTray('blue', mv.size);
+          selectedSize = mv.size; // 預選大小
+          const cell = boardEl.children[mv.to]; if(cell) cell.classList.add("hint");
+          showToast(`輪到你：落「${sizeNames[mv.size]}」→ 第 ${mv.to+1} 格`);
+        }else{
+          // 移動：選來源
+          selectedFrom = null; // 交互：先點來源
+          const src = boardEl.children[mv.from]; if(src) src.classList.add("hint");
+          const dst = boardEl.children[mv.to];   if(dst) dst.classList.add("hint");
+          showToast(`輪到你：移「${sizeNames[mv.size]}」 第 ${mv.from+1} → 第 ${mv.to+1}`);
+        }
+      }else{
+        showToast(`AI 進行：${mv.type==='place'?'落子':'移動'}「${sizeNames[mv.size]}」`);
       }
     }
 
