@@ -1,5 +1,4 @@
 
-<!doctype html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
@@ -10,7 +9,8 @@
 .app{width:100%;max-width:1100px;display:grid;gap:16px;align-items:start;grid-template-columns:1fr minmax(280px,480px) 1fr;grid-template-areas:"header header header" "left board right"}
 @media(max-width:900px){.app{grid-template-columns:1fr;grid-template-areas:"header" "board" "left" "right"}}
 .header{grid-area:header;display:flex;flex-direction:column;align-items:center;gap:8px}
-.title{margin:0;font-weight:900;letter-spacing:.5px;color:var(--green);font-size:clamp(22px,5vw,40px)}
+.title-line1{margin:0;font-weight:900;letter-spacing:.8px;color:#0f5132;font-size:clamp(28px,6.4vw,64px)}
+.title-line2{margin:0;font-weight:900;letter-spacing:.6px;color:var(--green);font-size:clamp(24px,5.6vw,56px)}
 .header-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .dot{width:14px;height:14px;border-radius:50%}.dot.blue{background:var(--green)}.dot.orange{background:var(--orange)}
 .turn-text{font-weight:800;font-size:14px}
@@ -54,7 +54,10 @@
 .arrow-layer{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:9999}
 .arrow-path{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5 12;opacity:.8;animation:dashMove 1.2s linear infinite;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
 @keyframes dashMove{to{stroke-dashoffset:-14}}
-.ghost{position:fixed;left:0;top:0;transform:translate(-50%,-50%);transition:left .55s ease,top .55s ease;pointer-events:none;z-index:9000}
+
+.fx{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:10000}
+.ych{position:absolute;transform:translate(-50%,-50%) scale(.2);opacity:0;font-weight:1000;letter-spacing:.8px;color:#16a34a;text-shadow:0 2px 0 #fff,0 0 10px rgba(22,163,74,.55),0 0 18px rgba(22,163,74,.35);font-size:clamp(36px,6vw,84px);animation:pop .5s ease forwards}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}60%{transform:translate(-50%,-50%) scale(1.15);opacity:1}100%{transform:translate(-50%,-50%) scale(1)}}
 
 .msg{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:#111;color:#fff;padding:8px 12px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s}
 .msg.show{opacity:.9}
@@ -71,7 +74,8 @@
 
 <div class="app">
   <div class="header">
-    <h1 class="title">超級過三關</h1>
+    <h1 class="title-line1">仁濟STEAM FAIRE 2026</h1>
+    <h2 class="title-line2">超級過三關</h2>
     <div class="header-bar">
       <span id="turnDot" class="dot blue"></span>
       <span id="turnText" class="turn-text">輪到：綠</span>
@@ -102,6 +106,7 @@
   </div>
 </div>
 
+<div id="fx" class="fx"></div>
 <div id="msg" class="msg"></div>
 
 <script>
@@ -110,7 +115,7 @@ const sizeNames={1:"小",2:"中",3:"大"};
 const winLines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
 const boardEl=document.getElementById("board"),turnDot=document.getElementById("turnDot"),turnText=document.getElementById("turnText");
 const restartBtn=document.getElementById("restartBtn"),swapBtn=document.getElementById("swapBtn"),modeBtn=document.getElementById("modeBtn");
-const arrowPath=document.getElementById('arrowPath'),msgEl=document.getElementById('msg');
+const arrowPath=document.getElementById('arrowPath'),msgEl=document.getElementById('msg'),fx=document.getElementById('fx');
 
 let board,counts,current,selectedSize,gameOver;
 let teachingMode=true,stepIndex=0,movingFromIndex=null,pvpSelectedFrom=null;
@@ -132,7 +137,7 @@ const SCRIPT=[
 ];
 
 function makeCells(){ if(boardEl.children.length) return; for(let i=0;i<9;i++){const c=document.createElement("div"); c.className="cell"; c.dataset.index=i; c.addEventListener("click",()=>onCellClick(i)); boardEl.appendChild(c);} }
-function resetCommon(){ board=Array.from({length:9},()=>[]); counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}}; selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null; current="blue"; render(); clearHints(); clearArrow(); clearTrayGlow(); }
+function resetCommon(){ board=Array.from({length:9},()=>[]); counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}}; selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null; current="blue"; render(); clearHints(); clearArrow(); clearTrayGlow(); clearFX(); }
 function resetTeaching(){ teachingMode=true; stepIndex=0; modeBtn.textContent="退出教學模式"; restartBtn.style.display="none"; swapBtn.style.display="none"; resetCommon(); showNextHint(); }
 function resetPVP(start="blue"){ teachingMode=false; modeBtn.textContent="開始教學模式"; restartBtn.style.display=""; swapBtn.style.display=""; resetCommon(); current=start; render(); hint("PVP 開始，先手："+(current==="blue"?"綠":"橙")); }
 
@@ -183,6 +188,7 @@ function topPiece(i){const s=board[i];return s.length?s[s.length-1]:null;}
 function canPlace(player,size,i){const s=board[i],t=s.length?s[s.length-1]:null;return !t||size>t.size;}
 function canMove(player,size,from,to){if(from===to)return false;const ft=topPiece(from);if(!ft||ft.player!==player||ft.size!==size)return false;const tt=topPiece(to);return !tt||size>tt.size;}
 function checkWin(p){return winLines.some(line=>line.every(i=>{const t=topPiece(i);return t&&t.player===p;}));}
+function getWinningLine(p){for(const line of winLines){if(line.every(i=>{const t=topPiece(i);return t&&t.player===p;})) return line;}return null;}
 
 function render(){
   turnDot.className="dot "+(current==="blue"?"blue":"orange");
@@ -193,6 +199,7 @@ function render(){
 
 function clearHints(){Array.from(boardEl.children).forEach(c=>c.classList.remove("hint","hint-move","source-cue"))}
 function clearTrayGlow(){document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("glow-green","active"))}
+function clearFX(){fx.innerHTML="";}
 function highlightTray(player,size){clearTrayGlow();document.querySelectorAll(".tray-btn").forEach(b=>{if(b.dataset.player===player&&Number(b.dataset.size)===size)b.classList.add("glow-green","active")})}
 function switchTurn(){current=(current==="blue")?"orange":"blue";render()}
 
@@ -230,7 +237,7 @@ function onCellClick(index){
       ghostMove(dot,dst,'blue',mv.size,550).then(()=>{
         board[mv.to].push({player:'blue',size:mv.size});
         counts.blue[mv.size]--; stepIndex++; clearArrow(); clearTrayGlow(); clearHints();
-        if(checkWin('blue')){gameOver=true;render();alert("綠方勝");unlock();return}
+        if(checkWin('blue')){ playerWinFX(); unlock(); return; }
         current='orange'; render(); setTimeout(runAIMoveIfAny,450);
       });
     }else{
@@ -242,7 +249,7 @@ function onCellClick(index){
       ghostMove({x:pos.x,y:pos.y},dst,'blue',mv.size,600).then(()=>{
         board[mv.to].push({player:'blue',size:mv.size});
         stepIndex++; movingFromIndex=null; clearArrow(); clearHints();
-        if(checkWin('blue')){gameOver=true;render();alert("綠方勝");unlock();return}
+        if(checkWin('blue')){ playerWinFX(); unlock(); return; }
         current='orange'; render(); setTimeout(runAIMoveIfAny,450);
       });
     }
@@ -262,7 +269,7 @@ function runAIMoveIfAny(){
     ghostMove(dot,dst,'orange',mv.size,550).then(()=>{
       board[mv.to].push({player:'orange',size:mv.size});
       counts.orange[mv.size]--; stepIndex++; clearArrow(); clearTrayGlow(); clearHints();
-      if(checkWin('orange')){gameOver=true;render();alert("橙方勝");unlock();return}
+      if(checkWin('orange')){ gameOver=true; render(); alert("橙方勝"); unlock(); return; }
       current='blue'; render(); showNextHint(); unlock();
     });
   }else{
@@ -271,10 +278,25 @@ function runAIMoveIfAny(){
     ghostMove({x:pos.x,y:pos.y},dst,'orange',mv.size,600).then(()=>{
       board[mv.to].push({player:'orange',size:mv.size});
       stepIndex++; movingFromIndex=null; clearArrow(); clearHints();
-      if(checkWin('orange')){gameOver=true;render();alert("橙方勝");unlock();return}
+      if(checkWin('orange')){ gameOver=true; render(); alert("橙方勝"); unlock(); return; }
       current='blue'; render(); showNextHint(); unlock();
     });
   }
+}
+
+function playerWinFX(){
+  gameOver=true; clearArrow(); clearHints(); clearTrayGlow(); render(); clearFX();
+  const line=getWinningLine('blue'); if(!line) return;
+  const pts=line.map(i=>({i, ...getCenter(boardEl.children[i])}));
+  pts.sort((a,b)=>a.x!==b.x?(a.x-b.x):(a.y-b.y));
+  const letters=["Y","C","H"];
+  pts.forEach((p,idx)=>{
+    const s=document.createElement('div');
+    s.className='ych'; s.textContent=letters[idx];
+    s.style.left=p.x+'px'; s.style.top=p.y+'px';
+    s.style.animationDelay=(idx*180)+'ms';
+    fx.appendChild(s);
+  });
 }
 
 function handlePVP(index){
@@ -310,4 +332,3 @@ function hint(t){ msgEl.textContent=t; msgEl.classList.add('show'); clearTimeout
 </script>
 </body>
 </html>
-``
