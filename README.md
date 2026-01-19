@@ -1,7 +1,9 @@
 
-
+<!doctype html>
 <html lang="zh-Hant">
-
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
   <title>超級過三關</title>
   <style>
     :root{
@@ -82,9 +84,10 @@
     .right{ grid-area:right; }
     .tray-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
     .tray-btn{
-      display:flex; align-items:center; justify-content:center;
-      padding:8px; cursor:pointer; border-radius:12px;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:8px; padding:8px; cursor:pointer; border-radius:12px;
       border:1px solid #ddd; background:#fafafa; transition:.15s; min-height:92px;
+      text-align:center;
     }
     .tray-btn:hover{ background:#f5f5f5; transform: translateY(-1px); }
     .tray-btn.active{ border-color:#888; box-shadow:0 4px 12px rgba(0,0,0,.08); background:#fff; }
@@ -108,8 +111,16 @@
         repeating-linear-gradient(90deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px);
       border:2px solid #d36a00;
     }
-    .mini.blue.size-1{ border-width:2px; } .mini.blue.size-2{ border-width:4px; } .mini.blue.size-3{ border-width:6px; }
-    .mini.orange.size-1{ border-width:2px; } .mini.orange.size-2{ border-width:4px; } .mini.orange.size-3{ border-width:6px; }
+
+    /* 托盤：大／中／小標籤 + 剩餘數量 */
+    .mini-badge{
+      position:absolute; left:50%; top:50%; transform: translate(-50%,-50%);
+      color:#fff; font-weight:900; background: rgba(0,0,0,.35);
+      border-radius:999px; padding: 1px 6px; font-size:12px; letter-spacing:.5px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.25); user-select:none; pointer-events:none;
+    }
+    .count{ font-size:13px; color:#333; }
+    .count.zero{ color:#d9363e; font-weight:800; }
 
     /* Board */
     .board-wrap{ grid-area:board; display:flex; justify-content:center; align-items:center; }
@@ -125,10 +136,16 @@
     }
     .cell:active{ box-shadow: inset 0 0 0 2px #bdbdbd; }
 
-    /* Place hint（綠） */
+    /* Place hint（綠 + 文字：放置） */
     .cell.hint{
       box-shadow: inset 0 0 0 3px var(--hint);
       animation: pulseHint 1.2s ease-in-out infinite;
+    }
+    .cell.hint::after{
+      content: "放置";
+      position:absolute; bottom:8px; right:8px;
+      background:#43a047; color:#fff; font-size:12px; padding:2px 6px; border-radius:999px;
+      box-shadow:0 2px 6px rgba(0,0,0,.15); letter-spacing:.5px; font-weight:800;
     }
     @keyframes pulseHint{
       0%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 0 rgba(76,175,80,.35); }
@@ -136,10 +153,16 @@
       100%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 0 rgba(76,175,80,.35); }
     }
 
-    /* Move target（橙） */
+    /* Move target（橙 + 文字：移動） */
     .cell.hint-move{
       box-shadow: inset 0 0 0 3px var(--move), 0 0 0 6px rgba(255,111,0,.22);
       animation: targetPulse 1.05s ease-in-out infinite;
+    }
+    .cell.hint-move::after{
+      content: "移動";
+      position:absolute; bottom:8px; right:8px;
+      background:var(--move); color:#fff; font-size:12px; padding:2px 6px; border-radius:999px;
+      box-shadow:0 2px 6px rgba(0,0,0,.15); letter-spacing:.5px; font-weight:800;
     }
     @keyframes targetPulse{ 0%{ transform:scale(1) } 50%{ transform:scale(1.02) } 100%{ transform:scale(1) } }
 
@@ -148,7 +171,7 @@
       box-shadow: inset 0 0 0 3px #64b5f6, 0 0 0 6px rgba(100,181,246,.18);
     }
 
-    /* Piece */
+    /* Board piece */
     .piece{
       position:absolute; left:50%; top:50%; transform: translate(-50%,-50%);
       border-radius:50%; box-shadow: 0 6px 16px rgba(0,0,0,.18), inset 0 0 0 3px rgba(255,255,255,.65);
@@ -207,9 +230,18 @@
     <!-- Left Tray (Blue) -->
     <div class="tray" id="trayBlue" aria-label="藍方托盤">
       <div class="tray-grid">
-        <div class="tray-btn" data-player="blue" data-size="3"><div class="mini blue size-3"></div></div>
-        <div class="tray-btn" data-player="blue" data-size="2"><div class="mini blue size-2"></div></div>
-        <div class="tray-btn" data-player="blue" data-size="1"><div class="mini blue size-1"></div></div>
+        <div class="tray-btn" data-player="blue" data-size="3">
+          <div class="mini blue size-3"><span class="mini-badge">大</span></div>
+          <div class="count" id="count-blue-3">x 2</div>
+        </div>
+        <div class="tray-btn" data-player="blue" data-size="2">
+          <div class="mini blue size-2"><span class="mini-badge">中</span></div>
+          <div class="count" id="count-blue-2">x 2</div>
+        </div>
+        <div class="tray-btn" data-player="blue" data-size="1">
+          <div class="mini blue size-1"><span class="mini-badge">小</span></div>
+          <div class="count" id="count-blue-1">x 2</div>
+        </div>
       </div>
     </div>
 
@@ -221,9 +253,18 @@
     <!-- Right Tray (Orange / AI) -->
     <div class="tray right" id="trayOrange" aria-label="橙方托盤">
       <div class="tray-grid">
-        <div class="tray-btn" data-player="orange" data-size="3"><div class="mini orange size-3"></div></div>
-        <div class="tray-btn" data-player="orange" data-size="2"><div class="mini orange size-2"></div></div>
-        <div class="tray-btn" data-player="orange" data-size="1"><div class="mini orange size-1"></div></div>
+        <div class="tray-btn" data-player="orange" data-size="3">
+          <div class="mini orange size-3"><span class="mini-badge">大</span></div>
+          <div class="count" id="count-orange-3">x 2</div>
+        </div>
+        <div class="tray-btn" data-player="orange" data-size="2">
+          <div class="mini orange size-2"><span class="mini-badge">中</span></div>
+          <div class="count" id="count-orange-2">x 2</div>
+        </div>
+        <div class="tray-btn" data-player="orange" data-size="1">
+          <div class="mini orange size-1"><span class="mini-badge">小</span></div>
+          <div class="count" id="count-orange-1">x 2</div>
+        </div>
       </div>
     </div>
   </div>
@@ -244,7 +285,6 @@
     let gameOver = false;
 
     // --- Script: 13 固定步驟（你提供）---
-    // actor: 'blue'|'orange', type: 'place'|'move', size: 1|2|3, to: 0..8, from(移動): 0..8
     const SCRIPT = [
       {actor:'blue',   type:'place', size:3, to:4},        // 1 藍 大→中
       {actor:'orange', type:'place', size:3, to:8},        // 2 橙 大→右下
@@ -429,6 +469,14 @@
           delete top.justPressed;
         }
       }
+
+      // 更新托盤數量
+      [1,2,3].forEach(s=>{
+        const cb = document.getElementById(`count-blue-${s}`);
+        const co = document.getElementById(`count-orange-${s}`);
+        if(cb){ cb.textContent = `x ${counts.blue[s]}`; cb.classList.toggle("zero", counts.blue[s]===0); }
+        if(co){ co.textContent = `x ${counts.orange[s]}`; co.classList.toggle("zero", counts.orange[s]===0); }
+      });
     }
 
     function clearTrayActive(){
@@ -493,7 +541,7 @@
       showNextHint();
     }
 
-    // 提示：落子 = 目標格綠光；移動 = 目標格橙光 + 來源藍環；自動預選大小
+    // 提示：落子 = 目標格綠光（文字：放置）；移動 = 目標格橙光（文字：移動） + 來源藍環；自動預選大小
     function showNextHint(){
       clearHints();
       if(!scriptedMode || gameOver || stepIndex >= SCRIPT.length) return;
