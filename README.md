@@ -1,4 +1,5 @@
 
+<!doctype html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
@@ -51,9 +52,11 @@
 @keyframes movingPulse{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.03)}100%{transform:translate(-50%,-50%) scale(1)}}
 .size-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-weight:900;background:rgba(0,0,0,.35);border-radius:999px;padding:2px 8px;box-shadow:0 2px 6px rgba(0,0,0,.25);user-select:none;z-index:3}
 
-/* 勝利：把三隻棋移除並在格內顯示 Y/C/H（留在棋盤） */
+/* 勝利字母（動畫版） */
 .win-letter{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.2);opacity:0;font-weight:1000;color:#16a34a;text-shadow:0 2px 0 #fff,0 0 10px rgba(22,163,74,.55),0 0 18px rgba(22,163,74,.35);font-size:clamp(30px,7vw,56px);animation:pop .5s ease forwards}
 @keyframes pop{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}60%{transform:translate(-50%,-50%) scale(1.15);opacity:1}100%{transform:translate(-50%,-50%) scale(1)}}
+/* 勝利字母（靜態重畫版，用於 render 後仍保留） */
+.win-letter-still{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:1000;color:#16a34a;text-shadow:0 2px 0 #fff,0 0 10px rgba(22,163,74,.55),0 0 18px rgba(22,163,74,.35);font-size:clamp(30px,7vw,56px)}
 
 .arrow-layer{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:9999}
 .arrow-path{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5 12;opacity:.8;animation:dashMove 1.2s linear infinite;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
@@ -119,6 +122,7 @@ const arrowPath=document.getElementById('arrowPath'),msgEl=document.getElementBy
 
 let board,counts,current,selectedSize,gameOver;
 let teachingMode=true,stepIndex=0,movingFromIndex=null,pvpSelectedFrom=null;
+let winLetters={}; /* 勝利字母持久化 */
 
 const SCRIPT=[
   {actor:'blue',type:'place',size:3,to:4},
@@ -137,7 +141,7 @@ const SCRIPT=[
 ];
 
 function makeCells(){ if(boardEl.children.length) return; for(let i=0;i<9;i++){const c=document.createElement("div"); c.className="cell"; c.dataset.index=i; c.addEventListener("click",()=>onCellClick(i)); boardEl.appendChild(c);} }
-function resetCommon(){ board=Array.from({length:9},()=>[]); counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}}; selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null; current="blue"; render(); clearHints(); clearArrow(); clearTrayGlow(); }
+function resetCommon(){ board=Array.from({length:9},()=>[]); counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}}; selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null; winLetters={}; current="blue"; render(); clearHints(); clearArrow(); clearTrayGlow(); }
 function resetTeaching(){ teachingMode=true; stepIndex=0; modeBtn.textContent="退出教學模式"; restartBtn.style.display="none"; swapBtn.style.display="none"; resetCommon(); showNextHint(); }
 function resetPVP(start="blue"){ teachingMode=false; modeBtn.textContent="開始教學模式"; restartBtn.style.display=""; swapBtn.style.display=""; resetCommon(); current=start; render(); hint("PVP 開始，先手："+(current==="blue"?"綠":"橙")); }
 
@@ -157,6 +161,8 @@ document.querySelectorAll(".tray-btn").forEach(btn=>{
     }else{
       if(player!==current){ hint("唔到你用對家托盤"); return; }
       if(counts[player][size]<=0){ hint("此大小已用完"); return; }
+      /* ★ 先前已選棋盤內棋 → 取消高亮 */
+      if(pvpSelectedFrom!==null){ const el=boardEl.children[pvpSelectedFrom]; el&&el.classList.remove('source-cue'); pvpSelectedFrom=null; }
       if(selectedSize===size){ selectedSize=null; clearTrayGlow(); hint("已取消選擇"); return; }
       selectedSize=size; clearTrayGlow(); btn.classList.add("glow-green","active"); hint("已選："+(current==="blue"?"綠":"橙")+"「"+sizeNames[size]+"」");
     }
@@ -203,6 +209,8 @@ function render(){
       if(i===movingFromIndex)p.classList.add('moving-piece');
       const b=document.createElement("span"); b.className="size-badge"; b.textContent=sizeNames[t.size]; p.appendChild(b);
       cell.appendChild(p);
+    }else if(winLetters[i]){ /* ★ 勝利字母持久化重畫 */
+      const s=document.createElement('span'); s.className='win-letter-still'; s.textContent=winLetters[i]; cell.appendChild(s);
     }
   }
   [1,2,3].forEach(s=>{
@@ -295,7 +303,7 @@ function runAIMoveIfAny(){
   }
 }
 
-/* 教學模式綠方勝：移除勝利線 3 隻棋 → 在原格放入 Y/C/H（留在棋盤） */
+/* 教學模式綠方勝：移除 3 隻棋 → 在格內放入 Y/C/H（持久化） */
 function winToLetters(){
   gameOver=true; clearArrow(); clearHints(); clearTrayGlow();
   const line=getWinningLine('blue'); if(!line) return;
@@ -303,13 +311,12 @@ function winToLetters(){
   pts.sort((a,b)=>a.x!==b.x?(a.x-b.x):(a.y-b.y));
   const letters=["Y","C","H"];
   pts.forEach((p,idx)=>{
-    board[p.i]=[]; const cell=boardEl.children[p.i];
-    cell.innerHTML="";
-    const s=document.createElement('span');
-    s.className='win-letter'; s.textContent=letters[idx];
-    s.style.animationDelay=(idx*180)+'ms';
-    cell.appendChild(s);
+    board[p.i]=[]; winLetters[p.i]=letters[idx]; /* 記錄持久化 */
+    const cell=boardEl.children[p.i]; cell.innerHTML="";
+    const s=document.createElement('span'); s.className='win-letter'; s.textContent=letters[idx];
+    s.style.animationDelay=(idx*180)+'ms'; cell.appendChild(s);
   });
+  /* 不立即 render，保留動畫；之後如再 render 會畫成 win-letter-still */
 }
 
 function handlePVP(index){
@@ -345,4 +352,3 @@ function hint(t){ msgEl.textContent=t; msgEl.classList.add('show'); clearTimeout
 </script>
 </body>
 </html>
-
