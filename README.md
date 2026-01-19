@@ -59,13 +59,11 @@
     .dot{ width:14px; height:14px; border-radius:50%; box-shadow: inset 0 0 0 2px rgba(255,255,255,.6); }
     .dot.blue{
       background: var(--blue);
-      background-image: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.65) 0 2px, transparent 2px 7px);
+      background-image: none;
     }
     .dot.orange{
       background: var(--orange);
-      background-image:
-        repeating-linear-gradient(0deg, rgba(255,255,255,.65) 0 2px, transparent 2px 7px),
-        repeating-linear-gradient(90deg, rgba(255,255,255,.65) 0 2px, transparent 2px 8px);
+      background-image: none;
     }
     .turn-text{ font-weight:800; font-size:14px; color:#333; }
 
@@ -97,23 +95,14 @@
 
     .mini{
       position: relative; border-radius:50%;
+      width:40px; height:40px;
       box-shadow: 0 3px 8px rgba(0,0,0,.15), inset 0 0 0 3px rgba(255,255,255,.65);
     }
     .mini.size-1{ width:28px; height:28px; }
     .mini.size-2{ width:34px; height:34px; }
     .mini.size-3{ width:40px; height:40px; }
-    .mini.blue{
-      background:var(--blue);
-      background-image: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.70) 0 2px, transparent 2px 8px);
-      border:2px solid #0c6fd3;
-    }
-    .mini.orange{
-      background:var(--orange);
-      background-image:
-        repeating-linear-gradient(0deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px),
-        repeating-linear-gradient(90deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px);
-      border:2px solid #d36a00;
-    }
+    .mini.blue{ background:var(--blue); border:2px solid #0c6fd3; }
+    .mini.orange{ background:var(--orange); border:2px solid #d36a00; }
 
     /* 托盤：大／中／小標籤 + 剩餘數量 */
     .mini-badge{
@@ -179,7 +168,7 @@
       box-shadow: inset 0 0 0 3px #64b5f6, 0 0 0 6px rgba(100,181,246,.12);
     }
 
-    /* 棋子 */
+    /* 棋子（主體色） */
     .piece{
       position:absolute; left:50%; top:50%; transform: translate(-50%,-50%);
       border-radius:50%; box-shadow: 0 6px 16px rgba(0,0,0,.18), inset 0 0 0 3px rgba(255,255,255,.65);
@@ -188,13 +177,34 @@
     .size-1{ width:55%; height:55%; }
     .size-2{ width:72%; height:72%; }
     .size-3{ width:95%; height:95%; }
-    .blue-piece{ background: var(--blue);
-      background-image: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.70) 0 2px, transparent 2px 8px);
-      border: 2px solid #0c6fd3; }
-    .orange-piece{ background: var(--orange);
-      background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px),
-                       repeating-linear-gradient(90deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px);
-      border: 2px solid #d36a00; }
+    .blue-piece{ background: var(--blue); border: 2px solid #0c6fd3; }
+    .orange-piece{ background: var(--orange); border: 2px solid #d36a00; }
+
+    /* 藍色：單一粗體圓環（中空） */
+    .blue-piece::before{
+      content:"";
+      position:absolute; left:50%; top:50%; transform: translate(-50%,-50%);
+      width: 70%; height: 70%;
+      border-radius: 50%;
+      box-shadow: 0 0 0 6px rgba(255,255,255,0.9), inset 0 0 0 6px #0c6fd3;
+      /* 外白內藍，形成圓環視覺；白色厚度避免與背景混 */
+      pointer-events:none;
+    }
+
+    /* 橙色：單一粗體交叉（X） */
+    .orange-piece::before,
+    .orange-piece::after{
+      content:"";
+      position:absolute; left:50%; top:50%;
+      width: 70%; height: 10%;
+      background: #d36a00; /* 粗體交叉色 = 邊框色 */
+      border-radius: 6px;
+      transform-origin: center;
+      pointer-events:none;
+      box-shadow: 0 1px 2px rgba(0,0,0,.2);
+    }
+    .orange-piece::before{ transform: translate(-50%,-50%) rotate(45deg); }
+    .orange-piece::after { transform: translate(-50%,-50%) rotate(-45deg); }
 
     /* 棋子中央尺寸標籤：大／中／小 */
     .size-badge{
@@ -219,22 +229,20 @@
     .bounce{ animation: bounceIn .28s ease-out; }
     .press{ animation: pressDown .28s ease-out; }
 
-    /* ==== SVG Arrow Overlay（縮小尺寸） ==== */
+    /* ==== SVG Arrow Overlay（細、半透、避開中心） ==== */
     .arrow-layer{
       position: fixed; left:0; top:0; width:100vw; height:100vh;
-      pointer-events:none; z-index: 10;
+      pointer-events:none; z-index: 9999;
     }
     .arrow-path{
-      fill:none; stroke-width:2.5;   /* 更幼，不阻擋字 */
+      fill:none; stroke-width:2.5;
       stroke-linecap:round; stroke-linejoin:round;
       stroke-dasharray: 5 12;
-      opacity:.8;                    /* 略透明 */
+      opacity:.8;
       animation: dashMove 1.2s linear infinite;
       filter: drop-shadow(0 1px 2px rgba(0,0,0,.15));
     }
-    @keyframes dashMove{
-      to{ stroke-dashoffset: -14; }
-    }
+    @keyframes dashMove{ to{ stroke-dashoffset: -14; } }
   </style>
 </head>
 <body>
@@ -321,21 +329,21 @@
     let selectedSize = null;
     let gameOver = false;
 
-    // --- Script: 13 固定步驟（你提供）---
+    // --- Script: 13 固定步驟 ---
     const SCRIPT = [
-      {actor:'blue',   type:'place', size:3, to:4},        // 1 藍 大→中
-      {actor:'orange', type:'place', size:3, to:8},        // 2 橙 大→右下
-      {actor:'blue',   type:'place', size:3, to:2},        // 3 藍 大→右上
-      {actor:'orange', type:'place', size:2, to:6},        // 4 橙 中→左下
-      {actor:'blue',   type:'move',  size:3, from:2, to:6},// 5 藍 移 大 2→6（吃橙中）
-      {actor:'orange', type:'place', size:2, to:2},        // 6 橙 中→右上
-      {actor:'blue',   type:'move',  size:3, from:4, to:2},// 7 藍 移 大 4→2（吃橙中）
-      {actor:'orange', type:'place', size:3, to:4},        // 8 橙 大→中
-      {actor:'blue',   type:'place', size:1, to:0},        // 9 藍 小→左上
-      {actor:'orange', type:'move',  size:3, from:8, to:0},//10 橙 移 大 8→0（吃藍小）
-      {actor:'blue',   type:'place', size:2, to:8},        //11 藍 中→右下
-      {actor:'orange', type:'move',  size:3, from:4, to:8},//12 橙 移 大 4→8（吃藍中）
-      {actor:'blue',   type:'place', size:2, to:4}         //13 藍 中→中（勝）
+      {actor:'blue',   type:'place', size:3, to:4},
+      {actor:'orange', type:'place', size:3, to:8},
+      {actor:'blue',   type:'place', size:3, to:2},
+      {actor:'orange', type:'place', size:2, to:6},
+      {actor:'blue',   type:'move',  size:3, from:2, to:6},
+      {actor:'orange', type:'place', size:2, to:2},
+      {actor:'blue',   type:'move',  size:3, from:4, to:2},
+      {actor:'orange', type:'place', size:3, to:4},
+      {actor:'blue',   type:'place', size:1, to:0},
+      {actor:'orange', type:'move',  size:3, from:8, to:0},
+      {actor:'blue',   type:'place', size:2, to:8},
+      {actor:'orange', type:'move',  size:3, from:4, to:8},
+      {actor:'blue',   type:'place', size:2, to:4}
     ];
     let stepIndex = 0;
     let scriptedMode = true;
@@ -360,7 +368,7 @@
       boardEl.appendChild(c);
     }
 
-    // Tray (玩家可點，但劇本會自動預選大小)
+    // Tray (player can click; script still preselects)
     document.querySelectorAll(".tray-btn").forEach(btn=>{
       btn.addEventListener("click", ()=>{
         if(gameOver || !scriptedMode) return;
@@ -372,7 +380,6 @@
         selectedSize = size;
         document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("active"));
         btn.classList.add("active");
-        // 重新計箭頭來源
         showNextHint();
       });
     });
@@ -386,28 +393,55 @@
     });
 
     // --- Arrow Helpers ---
+
+    /** 取得 DOM 中心點 */
     function getCenter(el){
       if(!el) return null;
       const r = el.getBoundingClientRect();
-      return { x: r.left + r.width/2, y: r.top + r.height/2 };
+      return { x: r.left + r.width/2, y: r.top + r.height/2, w:r.width, h:r.height };
     }
+    /** 設定 SVG viewport 對齊視窗 */
     function setSvgSize(){
       arrowLayer.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`);
     }
+
+    /**
+     * 取得「偏移後」的錨點，令箭頭不直穿中心。
+     * 規則：
+     *  - 先取元素中心點 A（來源）與 B（目標）。
+     *  - 以 A→B 的向量作基準，計算其垂直單位向量 n（-dy, dx）。
+     *  - 在 A、B 兩端各沿 n 方向偏移固定像素（相對格寬比例），使路徑遠離圓心。
+     *  - 為避免 A、B 兩端偏移到同側，B 端採用反方向（-n）。
+     */
+    function offsetEndpoints(fromEl, toEl){
+      const fa = getCenter(fromEl), tb = getCenter(toEl);
+      if(!fa || !tb) return null;
+      const dx = tb.x - fa.x, dy = tb.y - fa.y;
+      const len = Math.hypot(dx,dy) || 1;
+      // 垂直單位向量
+      const nx = -dy/len, ny = dx/len;
+      // 偏移距離：以目標格寬度 10% 為基準，上限 22px
+      const baseW = Math.min(fa.w || 0, tb.w || 0) || 60;
+      const offset = Math.min(22, baseW * 0.10);
+      // 偏移後的端點
+      const f2 = { x: fa.x + nx*offset, y: fa.y + ny*offset };
+      const t2 = { x: tb.x - nx*offset, y: tb.y - ny*offset };
+      return { f:f2, t:t2, mid:{ x:(f2.x+t2.x)/2, y:(f2.y+t2.y)/2 }, normal:{x:nx,y:ny}, len };
+    }
+
+    /** 繪製避開中心的弧線箭頭 */
     function drawArrow(fromEl, toEl, kind){ // kind: 'place'|'move'
       if(!fromEl || !toEl){ clearArrow(); return; }
       setSvgSize();
-      const f = getCenter(fromEl), t = getCenter(toEl);
-      if(!f || !t){ clearArrow(); return; }
 
-      // 弧線（細緻避開棋子中心）：弧度更小，減少穿過中央標籤機率
-      const dx = t.x - f.x, dy = t.y - f.y;
-      const mx = (f.x + t.x) / 2, my = (f.y + t.y) / 2;
-      const nx = -dy, ny = dx;
-      const len = Math.sqrt(dx*dx + dy*dy) || 1;
-      const offset = Math.min(28, len * 0.10); // 弧度比之前更小
-      const cx = mx + (nx/len) * offset;
-      const cy = my + (ny/len) * offset;
+      const pts = offsetEndpoints(fromEl, toEl);
+      if(!pts){ clearArrow(); return; }
+      const { f, t, mid, normal, len } = pts;
+
+      // 控制點：mid 再沿 normal 方向做輕微偏移，讓曲線自然避開中心
+      const bend = Math.min(28, len * 0.10);
+      const cx = mid.x + normal.x * bend;
+      const cy = mid.y + normal.y * bend;
 
       const d = `M ${f.x},${f.y} Q ${cx},${cy} ${t.x},${t.y}`;
       arrowPath.setAttribute('d', d);
@@ -642,7 +676,7 @@
           highlightTray('blue', mv.size);
           const dst = boardEl.children[mv.to]; if(dst) dst.classList.add("hint");
 
-          // 箭頭：托盤該大小 → 目標格
+          // 箭頭：托盤該大小 → 目標格（端點做偏移以避開中心）
           const trayBtn = [...document.querySelectorAll('#trayBlue .tray-btn')]
             .find(b=>Number(b.dataset.size)===mv.size);
           const trayDot = trayBtn ? trayBtn.querySelector('.mini') : trayBtn;
@@ -668,3 +702,4 @@
   </script>
 </body>
 </html>
+``
