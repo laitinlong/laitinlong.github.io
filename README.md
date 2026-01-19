@@ -59,7 +59,8 @@
 .win-letter{transform:translate(-50%,-50%) scale(.2);opacity:0;animation:pop .5s ease forwards}
 @keyframes pop{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}60%{transform:translate(-50%,-50%) scale(1.15);opacity:1}100%{transform:translate(-50%,-50%) scale(1)}}
 
-.arrow-layer{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:9999}
+/* SVG Arrow Layer（會以 JS 動態改 width/height 配合 visualViewport） */
+.arrow-layer{position:fixed;left:0;top:0;pointer-events:none;z-index:9999}
 .arrow-path{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5 12;opacity:.8;animation:dashMove 1.2s linear infinite;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
 @keyframes dashMove{to{stroke-dashoffset:-14}}
 
@@ -69,7 +70,8 @@
 </style>
 </head>
 <body>
-<svg id="arrowLayer" class="arrow-layer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+<!-- SVG overlay：寬高由 JS 以 visualViewport 實時設定，以免手機錯位 -->
+<svg id="arrowLayer" class="arrow-layer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" width="100%" height="100%">
   <defs>
     <marker id="headPlace" markerWidth="7" markerHeight="7" refX="5.6" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="var(--arrowPlace)"/></marker>
     <marker id="headMove" markerWidth="7" markerHeight="7" refX="5.6" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="var(--arrowMove)"/></marker>
@@ -126,6 +128,7 @@ let teachingMode=true,stepIndex=0,movingFromIndex=null,pvpSelectedFrom=null;
 let winLetters={};
 let currentArrow=null; let ghostAnim=null;
 
+/* 劇本 */
 const SCRIPT=[
   {actor:'blue',type:'place',size:3,to:4},
   {actor:'orange',type:'place',size:3,to:8},
@@ -142,6 +145,7 @@ const SCRIPT=[
   {actor:'blue',type:'place',size:2,to:4}
 ];
 
+/* 建 9 格（含 content + overlay） */
 if(!boardEl.children.length){
   for(let i=0;i<9;i++){
     const c=document.createElement("div"); c.className="cell"; c.dataset.index=i;
@@ -153,41 +157,17 @@ if(!boardEl.children.length){
   }
 }
 
-function resetCommon(){
-  board=Array.from({length:9},()=>[]);
-  counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}};
-  selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null;
-  currentArrow=null; clearArrow(); render(); clearHints(); clearTrayGlow();
-}
-
-function clearWinLettersDOM(){
-  Array.from(boardEl.children).forEach(c=>{
-    const ov=c.querySelector('.cell-overlay'); if(ov) ov.innerHTML="";
-  });
-  winLetters={};
-}
-
-function resetTeaching(){
-  clearWinLettersDOM();                 /* 進入教學前清字母（乾淨狀態） */
-  teachingMode=true; stepIndex=0;
-  modeBtn.textContent="退出教學模式";
-  restartBtn.style.display="none"; swapBtn.style.display="none";
-  resetCommon(); current="blue"; showNextHint();
-}
-
-function resetPVP(start="blue"){
-  clearWinLettersDOM();                 /* ★ 退出教學 → 清除 Y/C/H */
-  teachingMode=false;
-  modeBtn.textContent="開始教學模式";
-  restartBtn.style.display=""; swapBtn.style.display="";
-  resetCommon(); current=start; render();
-  hint("PVP 開始，先手："+(current==="blue"?"綠":"橙"));
-}
+/* 狀態 Reset */
+function resetCommon(){ board=Array.from({length:9},()=>[]); counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}}; selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null; currentArrow=null; clearArrow(); render(); clearHints(); clearTrayGlow(); }
+function clearWinLettersDOM(){ Array.from(boardEl.children).forEach(c=>{ const ov=c.querySelector('.cell-overlay'); if(ov) ov.innerHTML=""; }); winLetters={}; }
+function resetTeaching(){ clearWinLettersDOM(); teachingMode=true; stepIndex=0; modeBtn.textContent="退出教學模式"; restartBtn.style.display="none"; swapBtn.style.display="none"; resetCommon(); current="blue"; showNextHint(); }
+function resetPVP(start="blue"){ clearWinLettersDOM(); teachingMode=false; modeBtn.textContent="開始教學模式"; restartBtn.style.display=""; swapBtn.style.display=""; resetCommon(); current=start; render(); hint("PVP 開始，先手："+(current==="blue"?"綠":"橙")); }
 
 restartBtn.addEventListener("click",()=>{ if(!teachingMode) resetPVP("blue"); });
 swapBtn.addEventListener("click",()=>{ if(!teachingMode){ current=(current==="blue")?"orange":"blue"; resetPVP(current); hint("已換邊起手："+(current==="blue"?"綠":"橙")); }});
 modeBtn.addEventListener("click",()=>{ teachingMode?resetPVP("blue"):resetTeaching(); });
 
+/* 托盤（PVP 點托盤會取消盤內選中） */
 document.querySelectorAll(".tray-btn").forEach(btn=>{
   btn.addEventListener("click",()=>{
     if(gameOver) return;
@@ -207,13 +187,35 @@ document.querySelectorAll(".tray-btn").forEach(btn=>{
   });
 });
 
+/* 幾何 & SVG 尺寸（支援手機 VisualViewport） */
+function layoutArrowLayer(){
+  const vv=window.visualViewport;
+  if(vv){ // 手機：用 visual viewport 實際尺寸
+    arrowLayer.style.width = vv.width + "px";
+    arrowLayer.style.height= vv.height+ "px";
+    arrowLayer.style.left  = "0px";
+    arrowLayer.style.top   = "0px";
+    arrowLayer.setAttribute('viewBox',`0 0 ${vv.width} ${vv.height}`);
+  }else{  // 桌面 fallback
+    arrowLayer.style.width = "100vw";
+    arrowLayer.style.height= "100vh";
+    arrowLayer.style.left  = "0px";
+    arrowLayer.style.top   = "0px";
+    arrowLayer.setAttribute('viewBox',`0 0 ${window.innerWidth} ${window.innerHeight}`);
+  }
+}
 function getCenter(el){ if(!el) return null; const r=el.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/2,w:r.width,h:r.height}; }
-function setSvg(){ arrowLayer.setAttribute('viewBox',`0 0 ${window.innerWidth} ${window.innerHeight}`); }
-function offsetEndpoints(aEl,bEl){ const A=getCenter(aEl),B=getCenter(bEl); if(!A||!B) return null; const dx=B.x-A.x,dy=B.y-A.y,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,base=Math.min(A.w||0,B.w||0)||60,off=Math.min(22,base*0.10); const f={x:A.x+nx*off,y:A.y+ny*off},t={x:B.x-nx*off,y:B.y-ny*off},mid={x:(f.x+t.x)/2,y:(f.y+t.y)/2}; return {f,t,mid,nx,ny,len}; }
+function offsetEndpoints(aEl,bEl){
+  const A=getCenter(aEl),B=getCenter(bEl); if(!A||!B) return null;
+  const dx=B.x-A.x,dy=B.y-A.y,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,base=Math.min(A.w||0,B.w||0)||60,off=Math.min(22,base*0.10);
+  const f={x:A.x+nx*off,y:A.y+ny*off},t={x:B.x-nx*off,y:B.y-ny*off},mid={x:(f.x+t.x)/2,y:(f.y+t.y)/2};
+  return {f,t,mid,nx,ny,len};
+}
 
+/* 畫箭頭（每次以最新 viewport 尺寸重算） */
 function drawArrow(aEl,bEl,kind){
   if(!aEl||!bEl){ clearArrow(); return; }
-  setSvg();
+  layoutArrowLayer();
   const p=offsetEndpoints(aEl,bEl); if(!p){ clearArrow(); return; }
   const bend=Math.min(28,p.len*0.10),cx=p.mid.x+p.nx*bend,cy=p.mid.y+p.ny*bend;
   arrowPath.setAttribute('d',`M ${p.f.x},${p.f.y} Q ${cx},${cy} ${p.t.x},${p.t.y}`);
@@ -223,6 +225,7 @@ function drawArrow(aEl,bEl,kind){
 }
 function clearArrow(){ arrowPath.setAttribute('d',''); arrowPath.style.opacity='0'; currentArrow=null; }
 
+/* 幽靈棋（動畫期持續追蹤目標中心，避免手機縮放錯位） */
 function ghostMove(from,toEl,player,size,dur=650){
   return new Promise(res=>{
     const A=(from&&from.nodeType===1)?getCenter(from):from, B=getCenter(toEl);
@@ -240,19 +243,19 @@ function ghostMove(from,toEl,player,size,dur=650){
   });
 }
 
+/* 規則 */
 function topPiece(i){const s=board[i];return s.length?s[s.length-1]:null;}
 function canPlace(player,size,i){const s=board[i],t=s.length?s[s.length-1]:null;return !t||size>t.size;}
 function canMove(player,size,from,to){if(from===to)return false;const ft=topPiece(from);if(!ft||ft.player!==player||ft.size!==size)return false;const tt=topPiece(to);return !tt||size>tt.size;}
 function checkWin(p){return winLines.some(line=>line.every(i=>{const t=topPiece(i);return t&&t.player===p;}));}
 function getWinningLine(p){for(const l of winLines){if(l.every(i=>{const t=topPiece(i);return t&&t.player===p;})) return l}return null}
 
+/* Render（只清 content，overlay 保字母） */
 function render(){
   turnDot.className="dot "+(current==="blue"?"blue":"orange");
   turnText.textContent="輪到："+(current==="blue"?"綠":"橙");
   for(let i=0;i<9;i++){
-    const cell=boardEl.children[i];
-    const content=cell.querySelector('.cell-content');
-    const overlay=cell.querySelector('.cell-overlay');
+    const cell=boardEl.children[i],content=cell.querySelector('.cell-content'),overlay=cell.querySelector('.cell-overlay');
     content.innerHTML="";
     const t=topPiece(i);
     if(t){
@@ -273,6 +276,7 @@ function render(){
   })
 }
 
+/* 提示 */
 function clearHints(){Array.from(boardEl.children).forEach(c=>c.classList.remove("hint","hint-move","source-cue"))}
 function clearTrayGlow(){document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("glow-green","active"))}
 function highlightTray(player,size){clearTrayGlow();document.querySelectorAll(".tray-btn").forEach(b=>{if(b.dataset.player===player&&Number(b.dataset.size)===size)b.classList.add("glow-green","active")})}
@@ -295,6 +299,7 @@ function showNextHint(keep=false){
   }
 }
 
+/* 互動 */
 function onCellClick(index){
   if(gameOver) return;
   if(teachingMode){
@@ -351,6 +356,7 @@ function runAIMoveIfAny(){
   }
 }
 
+/* 教學勝利：移除 3 子 → overlay 放 Y/C/H（動畫 + 持久化） */
 function winToLetters(){
   gameOver=true; clearArrow(); clearHints(); clearTrayGlow();
   const line=getWinningLine('blue'); if(!line) return;
@@ -359,16 +365,15 @@ function winToLetters(){
   const letters=["Y","C","H"];
   pts.forEach((p,idx)=>{
     board[p.i]=[]; winLetters[p.i]=letters[idx];
-    const cell=boardEl.children[p.i];
-    const content=cell.querySelector('.cell-content'); const overlay=cell.querySelector('.cell-overlay');
-    content.innerHTML="";
-    overlay.innerHTML="";
+    const cell=boardEl.children[p.i],content=cell.querySelector('.cell-content'),overlay=cell.querySelector('.cell-overlay');
+    content.innerHTML=""; overlay.innerHTML="";
     const s=document.createElement('span'); s.className='win-letter'; s.textContent=letters[idx];
     s.style.animationDelay=(idx*180)+'ms'; overlay.appendChild(s);
     setTimeout(()=>{ overlay.innerHTML=""; const st=document.createElement('span'); st.className='win-letter-still'; st.textContent=letters[idx]; overlay.appendChild(st); }, 700+idx*180);
   });
 }
 
+/* PVP */
 function handlePVP(index){
   if(gameOver) return;
   const tp=topPiece(index);
@@ -392,24 +397,31 @@ function handlePVP(index){
   switchTurn();
 }
 
+/* UI lock / 提示 */
 let uiLocked=false;
 function lock(){ uiLocked=true; document.body.style.pointerEvents='none'; }
 function unlock(){ uiLocked=false; document.body.style.pointerEvents='auto'; }
 function hint(t){ msgEl.textContent=t; msgEl.classList.add('show'); clearTimeout(hint._t); hint._t=setTimeout(()=>msgEl.classList.remove('show'),1400); }
 
+/* —— 手機重繪同步：視窗變化時 → 更新 SVG 尺寸、重畫箭頭、追踪幽靈棋 —— */
 function redrawArrowIfAny(){ if(!currentArrow) return; const {fromEl,toEl,kind}=currentArrow; drawArrow(fromEl,toEl,kind); }
 function followGhostDuringAnim(){
   if(!ghostAnim) return;
-  const now=Date.now(); if(now>ghostAnim.endTime) { ghostAnim=null; return; }
+  const now=Date.now(); if(now>ghostAnim.endTime){ ghostAnim=null; return; }
   const B=getCenter(ghostAnim.toEl); if(B){ ghostAnim.el.style.left=B.x+"px"; ghostAnim.el.style.top=B.y+"px"; }
   requestAnimationFrame(followGhostDuringAnim);
 }
-['resize','scroll','orientationchange'].forEach(ev=>{
-  window.addEventListener(ev, ()=>{ setSvg(); redrawArrowIfAny(); followGhostDuringAnim(); }, {passive:true});
-});
-const ro = new ResizeObserver(()=>{ setSvg(); redrawArrowIfAny(); followGhostDuringAnim(); });
+function viewportSync(){ layoutArrowLayer(); redrawArrowIfAny(); followGhostDuringAnim(); }
+['resize','scroll','orientationchange'].forEach(ev=>{ window.addEventListener(ev, viewportSync, {passive:true}); });
+if(window.visualViewport){
+  visualViewport.addEventListener('resize', viewportSync, {passive:true});
+  visualViewport.addEventListener('scroll', viewportSync, {passive:true});
+}
+const ro=new ResizeObserver(viewportSync);
 ro.observe(document.documentElement); ro.observe(document.body); ro.observe(boardEl);
 
+/* 啟動 */
+layoutArrowLayer();
 resetTeaching();
 })();
 </script>
