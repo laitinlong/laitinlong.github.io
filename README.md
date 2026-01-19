@@ -44,8 +44,15 @@
       }
     }
 
-    /* Header (極簡：只留輪到顏色點 + 兩個圖示按鈕) */
-    .header{ grid-area:header; display:flex; justify-content:center; align-items:center; gap:10px; }
+    /* Header */
+    .header{ grid-area:header; display:flex; flex-direction:column; align-items:center; gap:8px; }
+    .title{
+      margin:0; font-weight:900; letter-spacing:.5px;
+      color: var(--blue);
+      font-size: clamp(22px, 5vw, 40px);
+      text-shadow: 0 2px 10px rgba(30,144,255,.15);
+    }
+    .header-bar{ display:flex; align-items:center; gap:10px; }
     .dot{ width:14px; height:14px; border-radius:50%; box-shadow: inset 0 0 0 2px rgba(255,255,255,.6); }
     .dot.blue{
       background: var(--blue);
@@ -57,11 +64,13 @@
         repeating-linear-gradient(0deg, rgba(255,255,255,.65) 0 2px, transparent 2px 7px),
         repeating-linear-gradient(90deg, rgba(255,255,255,.65) 0 2px, transparent 2px 8px);
     }
+    .turn-text{ font-weight:800; font-size:14px; color:#333; }
+
     .btn{
       border:1px solid #ccc; background:#fff; color:#222;
-      width:36px; height:36px; border-radius:10px; cursor:pointer;
+      padding:8px 12px; border-radius:10px; cursor:pointer;
       display:inline-flex; align-items:center; justify-content:center;
-      font-size:18px; transition:.15s; user-select:none;
+      font-size:14px; transition:.15s; user-select:none;
     }
     .btn:hover{ transform: translateY(-1px); box-shadow:0 3px 10px rgba(0,0,0,.08); }
     .btn:active{ transform: translateY(1px); }
@@ -118,7 +127,7 @@
     }
     .cell:active{ box-shadow: inset 0 0 0 2px #bdbdbd; }
 
-    /* 放子提示（綠） */
+    /* Place hint（綠） */
     .cell.hint{
       box-shadow: inset 0 0 0 3px var(--hint);
       animation: pulseHint 1.2s ease-in-out infinite;
@@ -129,14 +138,14 @@
       100%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 0 rgba(76,175,80,.35); }
     }
 
-    /* 移動目標（橙） */
+    /* Move target（橙） */
     .cell.hint-move{
       box-shadow: inset 0 0 0 3px var(--move), 0 0 0 6px rgba(255,111,0,.22);
       animation: targetPulse 1.05s ease-in-out infinite;
     }
     @keyframes targetPulse{ 0%{ transform:scale(1) } 50%{ transform:scale(1.02) } 100%{ transform:scale(1) } }
 
-    /* 移動來源（藍環） */
+    /* Move source（藍環） */
     .cell.source-cue{
       box-shadow: inset 0 0 0 3px #64b5f6, 0 0 0 6px rgba(100,181,246,.18);
     }
@@ -160,6 +169,20 @@
     .blue-piece.size-1{ border-width:2px; } .blue-piece.size-2{ border-width:4px; } .blue-piece.size-3{ border-width:6px; }
     .orange-piece.size-1{ border-width:2px; } .orange-piece.size-2{ border-width:4px; } .orange-piece.size-3{ border-width:6px; }
 
+    /* 中央尺寸標籤：大／中／小 */
+    .size-badge{
+      position:absolute;
+      left:50%; top:50%; transform: translate(-50%,-50%);
+      color:#fff; font-weight:900; letter-spacing:.5px;
+      background: rgba(0,0,0,.35);
+      border-radius:999px; padding: 2px 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.25);
+      user-select:none; pointer-events:none;
+    }
+    .piece.size-1 .size-badge{ font-size:12px; padding:2px 6px; }
+    .piece.size-2 .size-badge{ font-size:14px; padding:3px 8px; }
+    .piece.size-3 .size-badge{ font-size:16px; padding:4px 10px; }
+
     @keyframes bounceIn{ 0%{ transform: translate(-50%,-50%) scale(.85); } 50%{ transform: translate(-50%,-50%) scale(1.06); } 100%{ transform: translate(-50%,-50%) scale(1); } }
     @keyframes pressDown{
       0%{ transform: translate(-50%,-50%) scale(1); box-shadow:0 8px 20px rgba(0,0,0,.22), inset 0 0 0 3px rgba(255,255,255,.65) }
@@ -172,25 +195,23 @@
 </head>
 <body>
   <div class="app">
-    <!-- Header (極簡) -->
+    <!-- Header -->
     <div class="header" aria-label="controls">
-      <span id="turnDot" class="dot blue" aria-hidden="true"></span>
-      <button id="restartScriptBtn" class="btn" aria-label="重新開始">🔁</button>
-      <button id="exitScriptBtn" class="btn" aria-label="退出劇本">✖️</button>
+      <h1 class="title">超級過三關</h1>
+      <div class="header-bar">
+        <span id="turnDot" class="dot blue" aria-hidden="true"></span>
+        <span id="turnText" class="turn-text">輪到：藍</span>
+        <button id="restartScriptBtn" class="btn" aria-label="重新開始">重新開始</button>
+        <button id="exitScriptBtn" class="btn" aria-label="退出劇本">退出劇本</button>
+      </div>
     </div>
 
     <!-- Left Tray (Blue) -->
     <div class="tray" id="trayBlue" aria-label="藍方托盤">
       <div class="tray-grid">
-        <div class="tray-btn" data-player="blue" data-size="3">
-          <div class="mini blue size-3"></div>
-        </div>
-        <div class="tray-btn" data-player="blue" data-size="2">
-          <div class="mini blue size-2"></div>
-        </div>
-        <div class="tray-btn" data-player="blue" data-size="1">
-          <div class="mini blue size-1"></div>
-        </div>
+        <div class="tray-btn" data-player="blue" data-size="3"><div class="mini blue size-3"></div></div>
+        <div class="tray-btn" data-player="blue" data-size="2"><div class="mini blue size-2"></div></div>
+        <div class="tray-btn" data-player="blue" data-size="1"><div class="mini blue size-1"></div></div>
       </div>
     </div>
 
@@ -202,15 +223,9 @@
     <!-- Right Tray (Orange / AI) -->
     <div class="tray right" id="trayOrange" aria-label="橙方托盤">
       <div class="tray-grid">
-        <div class="tray-btn" data-player="orange" data-size="3">
-          <div class="mini orange size-3"></div>
-        </div>
-        <div class="tray-btn" data-player="orange" data-size="2">
-          <div class="mini orange size-2"></div>
-        </div>
-        <div class="tray-btn" data-player="orange" data-size="1">
-          <div class="mini orange size-1"></div>
-        </div>
+        <div class="tray-btn" data-player="orange" data-size="3"><div class="mini orange size-3"></div></div>
+        <div class="tray-btn" data-player="orange" data-size="2"><div class="mini orange size-2"></div></div>
+        <div class="tray-btn" data-player="orange" data-size="1"><div class="mini orange size-1"></div></div>
       </div>
     </div>
   </div>
@@ -218,6 +233,7 @@
   <script>
   (function(){
     // --- State & Rules ---
+    const sizeNames = {1:"小",2:"中",3:"大"};
     const winLines = [
       [0,1,2],[3,4,5],[6,7,8],
       [0,3,6],[1,4,7],[2,5,8],
@@ -252,6 +268,7 @@
     // --- Elements ---
     const boardEl = document.getElementById("board");
     const turnDot = document.getElementById("turnDot");
+    const turnText = document.getElementById("turnText");
     const restartScriptBtn = document.getElementById("restartScriptBtn");
     const exitScriptBtn = document.getElementById("exitScriptBtn");
 
@@ -264,7 +281,7 @@
       boardEl.appendChild(c);
     }
 
-    // Tray (選擇大小；但劇本會自動預選)
+    // Tray (玩家可點，但劇本會自動預選大小)
     document.querySelectorAll(".tray-btn").forEach(btn=>{
       btn.addEventListener("click", ()=>{
         if(gameOver || !scriptedMode) return;
@@ -291,7 +308,6 @@
       if(gameOver) return;
 
       if(!scriptedMode){
-        // 自由模式（保留 PVP 規則）
         handleFreePlay(index);
         return;
       }
@@ -301,7 +317,7 @@
 
       if(mv.actor==='blue'){
         if(mv.type==='place'){
-          // 劇本已在提示自動預選大小，玩家只需點提示格
+          // 劇本預選大小，點提示格即可
           if(selectedSize !== mv.size) return;
           if(index !== mv.to) return;
           if(!canPlace('blue', mv.size, index)) return;
@@ -387,8 +403,9 @@
 
     // --- Rules & Rendering ---
     function render(){
-      // Turn dot
+      // Turn indicator
       turnDot.className = "dot " + (current==="blue"?"blue":"orange");
+      document.getElementById("turnText").textContent = "輪到：" + (current==="blue"?"藍":"橙");
 
       // Board pieces
       for(let i=0;i<9;i++){
@@ -400,6 +417,13 @@
         if(top){
           const p = document.createElement("div");
           p.className = `piece ${top.player==='blue'?'blue-piece':'orange-piece'} size-${top.size}`;
+
+          // 尺寸標籤（大/中/小）
+          const badge = document.createElement("span");
+          badge.className = "size-badge";
+          badge.textContent = sizeNames[top.size];
+          p.appendChild(badge);
+
           if(top.justPlaced) p.classList.add("bounce");
           if(top.justPressed) p.classList.add("press");
           cellEl.appendChild(p);
