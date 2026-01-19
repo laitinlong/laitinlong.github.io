@@ -13,9 +13,11 @@
       --text:#222;
       --cell-size: min(22vmin, 130px);
       --gap: 10px;
-      --hint:#4caf50;     /* 放置標籤主色（綠） */
-      --move:#ff6f00;     /* 移動標籤主色（橙） */
+      --hint:#4caf50;     /* 放置提示（綠） */
+      --move:#ff6f00;     /* 移動提示（橙） */
       --labelShadow: 0 4px 12px rgba(0,0,0,.15);
+      --arrowPlace:#43a047; /* 放置箭頭色 */
+      --arrowMove:#ff6f00;  /* 移動箭頭色 */
     }
     *{ box-sizing:border-box }
     body{
@@ -126,6 +128,7 @@
     /* Board */
     .board-wrap{ grid-area:board; display:flex; justify-content:center; align-items:center; }
     .board{
+      position: relative;
       display:grid; grid-template-columns: repeat(3, var(--cell-size)); grid-template-rows: repeat(3, var(--cell-size));
       gap: var(--gap); padding: var(--gap); background: var(--board-bg); border-radius:18px;
       box-shadow: 0 10px 30px rgba(0,0,0,.08), inset 0 0 0 3px #ddd;
@@ -137,27 +140,18 @@
     }
     .cell:active{ box-shadow: inset 0 0 0 2px #bdbdbd; }
 
-    /* 放子提示（綠 + 大字 + 箭頭） */
+    /* 放子提示（綠 + 大字 + 箭頭角標） */
     .cell.hint{
       box-shadow: inset 0 0 0 3px var(--hint);
       animation: pulseHint 1.2s ease-in-out infinite;
     }
     .cell.hint::after{
       content: "放置 ➤";
-      position:absolute; bottom:10px; right:10px;
+      position:absolute; bottom:8px; right:8px;
       background:#43a047; color:#fff;
       font-size:16px; font-weight:900; letter-spacing:.5px;
       padding:6px 12px; border-radius:999px;
       box-shadow: var(--labelShadow);
-    }
-    .cell.hint::before{
-      content:"";
-      position:absolute; bottom:38px; right:80px; /* 微調三角位置 */
-      width:0; height:0;
-      border-left:10px solid #43a047;
-      border-top:10px solid transparent;
-      border-bottom:10px solid transparent;
-      filter: drop-shadow(0 2px 3px rgba(0,0,0,.15));
     }
     @keyframes pulseHint{
       0%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 0 rgba(76,175,80,.35); }
@@ -165,27 +159,18 @@
       100%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 0 rgba(76,175,80,.35); }
     }
 
-    /* 移動提示（橙 + 大字 + 箭頭） */
+    /* 移動提示（橙 + 大字 + 箭頭角標） */
     .cell.hint-move{
       box-shadow: inset 0 0 0 3px var(--move), 0 0 0 6px rgba(255,111,0,.22);
       animation: targetPulse 1.05s ease-in-out infinite;
     }
     .cell.hint-move::after{
       content: "移動 ➤";
-      position:absolute; bottom:10px; right:10px;
+      position:absolute; bottom:8px; right:8px;
       background:var(--move); color:#fff;
       font-size:16px; font-weight:900; letter-spacing:.5px;
       padding:6px 12px; border-radius:999px;
       box-shadow: var(--labelShadow);
-    }
-    .cell.hint-move::before{
-      content:"";
-      position:absolute; bottom:38px; right:92px; /* 微調三角位置 */
-      width:0; height:0;
-      border-left:10px solid var(--move);
-      border-top:10px solid transparent;
-      border-bottom:10px solid transparent;
-      filter: drop-shadow(0 2px 3px rgba(0,0,0,.15));
     }
     @keyframes targetPulse{ 0%{ transform:scale(1) } 50%{ transform:scale(1.02) } 100%{ transform:scale(1) } }
 
@@ -194,7 +179,7 @@
       box-shadow: inset 0 0 0 3px #64b5f6, 0 0 0 6px rgba(100,181,246,.18);
     }
 
-    /* Board piece */
+    /* 棋子 */
     .piece{
       position:absolute; left:50%; top:50%; transform: translate(-50%,-50%);
       border-radius:50%; box-shadow: 0 6px 16px rgba(0,0,0,.18), inset 0 0 0 3px rgba(255,255,255,.65);
@@ -210,8 +195,6 @@
       background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px),
                        repeating-linear-gradient(90deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px);
       border: 2px solid #d36a00; }
-    .blue-piece.size-1{ border-width:2px; } .blue-piece.size-2{ border-width:4px; } .blue-piece.size-3{ border-width:6px; }
-    .orange-piece.size-1{ border-width:2px; } .orange-piece.size-2{ border-width:4px; } .orange-piece.size-3{ border-width:6px; }
 
     /* 棋子中央尺寸標籤：大／中／小 */
     .size-badge{
@@ -235,9 +218,38 @@
     }
     .bounce{ animation: bounceIn .28s ease-out; }
     .press{ animation: pressDown .28s ease-out; }
+
+    /* ==== SVG Arrow Overlay ==== */
+    .arrow-layer{
+      position: fixed; left:0; top:0; width:100vw; height:100vh;
+      pointer-events:none; z-index: 10;
+    }
+    .arrow-path{
+      fill:none; stroke-width:4.5;
+      stroke-linecap:round; stroke-linejoin:round;
+      stroke-dasharray: 6 10;
+      animation: dashMove 1.2s linear infinite;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,.15));
+    }
+    @keyframes dashMove{
+      to{ stroke-dashoffset: -16; }
+    }
   </style>
 </head>
 <body>
+  <!-- SVG arrow overlay -->
+  <svg id="arrowLayer" class="arrow-layer" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <defs>
+      <marker id="headPlace" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+        <polygon points="0,0 10,5 0,10" fill="var(--arrowPlace)"></polygon>
+      </marker>
+      <marker id="headMove" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+        <polygon points="0,0 10,5 0,10" fill="var(--arrowMove)"></polygon>
+      </marker>
+    </defs>
+    <path id="arrowPath" class="arrow-path" d="" stroke="transparent" marker-end="url(#headPlace)"></path>
+  </svg>
+
   <div class="app">
     <!-- Header -->
     <div class="header" aria-label="controls">
@@ -333,12 +345,16 @@
     const restartScriptBtn = document.getElementById("restartScriptBtn");
     const exitScriptBtn = document.getElementById("exitScriptBtn");
 
+    // Arrow overlay elements
+    const arrowLayer = document.getElementById('arrowLayer');
+    const arrowPath  = document.getElementById('arrowPath');
+
     // Build 9 cells
     for(let i=0;i<9;i++){
       const c = document.createElement("div");
       c.className = "cell";
       c.dataset.index = i;
-      c.addEventListener("click", () => onCellClick(i));
+      c.addEventListener("click", ()=>onCellClick(i));
       boardEl.appendChild(c);
     }
 
@@ -354,6 +370,8 @@
         selectedSize = size;
         document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("active"));
         btn.classList.add("active");
+        // 點選托盤時更新箭頭來源為此按鈕
+        showNextHint(); // 重新計算箭頭
       });
     });
 
@@ -362,7 +380,53 @@
     exitScriptBtn.addEventListener("click", ()=>{
       scriptedMode = false;
       clearHints();
+      clearArrow();
     });
+
+    // --- Arrow Helpers ---
+    function getCenter(el){
+      if(!el) return null;
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width/2, y: r.top + r.height/2 };
+    }
+    function setSvgSize(){
+      arrowLayer.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`);
+    }
+    function drawArrow(fromEl, toEl, kind){ // kind: 'place'|'move'
+      if(!fromEl || !toEl){ clearArrow(); return; }
+      setSvgSize();
+      const f = getCenter(fromEl), t = getCenter(toEl);
+      if(!f || !t){ clearArrow(); return; }
+
+      // 直線或輕微弧線（使用二次貝茲曲線令箭頭更優雅）
+      const dx = t.x - f.x, dy = t.y - f.y;
+      const mx = (f.x + t.x) / 2, my = (f.y + t.y) / 2;
+      const nx = -dy, ny = dx;
+      const len = Math.sqrt(dx*dx + dy*dy) || 1;
+      const offset = Math.min(40, len * 0.12); // 弧度偏移
+      const cx = mx + (nx/len) * offset;
+      const cy = my + (ny/len) * offset;
+
+      const d = `M ${f.x},${f.y} Q ${cx},${cy} ${t.x},${t.y}`;
+      arrowPath.setAttribute('d', d);
+
+      if(kind === 'place'){
+        arrowPath.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--arrowPlace') || '#43a047');
+        arrowPath.setAttribute('marker-end', 'url(#headPlace)');
+      }else{
+        arrowPath.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--arrowMove') || '#ff6f00');
+        arrowPath.setAttribute('marker-end', 'url(#headMove)');
+      }
+      arrowPath.style.opacity = '1';
+    }
+    function clearArrow(){
+      arrowPath.setAttribute('d','');
+      arrowPath.style.opacity = '0';
+    }
+    window.addEventListener('resize', ()=>{ // 窗口變動時重繪箭頭
+      if(!scriptedMode || gameOver) return;
+      showNextHint(true);
+    }, {passive:true});
 
     // --- Interaction ---
     function onCellClick(index){
@@ -378,7 +442,6 @@
 
       if(mv.actor==='blue'){
         if(mv.type==='place'){
-          // 劇本預選大小，點提示格即可
           if(selectedSize !== mv.size) return;
           if(index !== mv.to) return;
           if(!canPlace('blue', mv.size, index)) return;
@@ -390,6 +453,7 @@
 
           if(checkWin('blue')){ gameOver=true; render(); setTimeout(()=>alert("藍方勝"),10); return; }
           switchTurn();
+          clearArrow();
           setTimeout(()=>runAIMoveIfAny(), 600);
           return;
         }else{
@@ -404,6 +468,7 @@
 
           if(checkWin('blue')){ gameOver=true; render(); setTimeout(()=>alert("藍方勝"),10); return; }
           switchTurn();
+          clearArrow();
           setTimeout(()=>runAIMoveIfAny(), 600);
           return;
         }
@@ -416,6 +481,7 @@
       if(mv.actor !== 'orange'){ showNextHint(); return; }
 
       current = 'orange'; render();
+      clearArrow();
 
       if(mv.type === 'place'){
         if(!canPlace('orange', mv.size, mv.to)) return;
@@ -464,11 +530,9 @@
 
     // --- Rules & Rendering ---
     function render(){
-      // Turn indicator
       turnDot.className = "dot " + (current==="blue"?"blue":"orange");
       document.getElementById("turnText").textContent = "輪到：" + (current==="blue"?"藍":"橙");
 
-      // Board pieces
       for(let i=0;i<9;i++){
         const cellEl = boardEl.children[i];
         const old = cellEl.querySelector(".piece");
@@ -479,7 +543,6 @@
           const p = document.createElement("div");
           p.className = `piece ${top.player==='blue'?'blue-piece':'orange-piece'} size-${top.size}`;
 
-          // 尺寸標籤（大/中/小）
           const badge = document.createElement("span");
           badge.className = "size-badge";
           badge.textContent = sizeNames[top.size];
@@ -559,24 +622,35 @@
       current = "blue";
       selectedSize = null; gameOver = false;
       stepIndex = 0; scriptedMode = true;
-      clearTrayActive(); clearHints();
+      clearTrayActive(); clearHints(); clearArrow();
       render();
       showNextHint();
     }
 
-    // 提示：落子 = 目標格綠光（文字：放置 ➤）；移動 = 目標格橙光（文字：移動 ➤） + 來源藍環；自動預選大小
-    function showNextHint(){
+    // 提示 + 箭頭：落子 = 目標格綠光；移動 = 目標格橙光 + 來源藍環；箭頭顯示來源→目標
+    function showNextHint(keepSelected=false){
       clearHints();
+      clearArrow();
       if(!scriptedMode || gameOver || stepIndex >= SCRIPT.length) return;
       const mv = SCRIPT[stepIndex];
+
       if(mv.actor==='blue'){
         if(mv.type==='place'){
+          // 預選大小（如果未手動點托盤）
+          if(!keepSelected) { selectedSize = mv.size; }
           highlightTray('blue', mv.size);
-          selectedSize = mv.size; // 預選
-          const cell = boardEl.children[mv.to]; if(cell) cell.classList.add("hint");
+          const dst = boardEl.children[mv.to]; if(dst) dst.classList.add("hint");
+
+          // 箭頭：托盤該大小 → 目標格
+          const trayBtn = [...document.querySelectorAll('#trayBlue .tray-btn')]
+            .find(b=>Number(b.dataset.size)===mv.size);
+          const trayDot = trayBtn ? trayBtn.querySelector('.mini') : trayBtn;
+          drawArrow(trayDot || trayBtn, dst, 'place');
         }else{
+          // 移動：來源藍環、目標橙光；箭頭：來源→目標
           const src = boardEl.children[mv.from]; if(src) src.classList.add("source-cue");
           const dst = boardEl.children[mv.to];   if(dst) dst.classList.add("hint-move");
+          drawArrow(src, dst, 'move');
         }
       }
     }
@@ -594,3 +668,4 @@
   </script>
 </body>
 </html>
+``
