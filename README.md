@@ -13,11 +13,14 @@
       --text:#222;
       --cell-size: min(22vmin, 130px);
       --gap: 10px;
-      --hint:#4caf50;     /* 放置提示（綠） */
-      --move:#ff6f00;     /* 移動提示（橙） */
+
+      /* 提示與效果統一綠色 */
+      --hint:#43a047;     /* 放置/移動提示（綠） */
+      --move:#43a047;     /* 移動也改為綠色 */
+
       --labelShadow: 0 4px 12px rgba(0,0,0,.15);
-      --arrowPlace:#43a047; /* 放置箭頭色 */
-      --arrowMove:#ff6f00;  /* 移動箭頭色 */
+      --arrowPlace:#43a047; /* 放置箭頭色（綠） */
+      --arrowMove:#43a047;  /* 移動箭頭色（綠） */
     }
     *{ box-sizing:border-box }
     body{
@@ -57,14 +60,8 @@
     }
     .header-bar{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
     .dot{ width:14px; height:14px; border-radius:50%; box-shadow: inset 0 0 0 2px rgba(255,255,255,.6); }
-    .dot.blue{
-      background: var(--blue);
-      background-image: none;
-    }
-    .dot.orange{
-      background: var(--orange);
-      background-image: none;
-    }
+    .dot.blue{ background: var(--blue); }
+    .dot.orange{ background: var(--orange); }
     .turn-text{ font-weight:800; font-size:14px; color:#333; }
 
     .btn{
@@ -137,20 +134,20 @@
     .cell.hint::after{
       content: "放置";
       position:absolute; bottom:8px; right:8px;
-      background:#43a047; color:#fff;
+      background:var(--hint); color:#fff;
       font-size:16px; font-weight:900; letter-spacing:.5px;
       padding:6px 12px; border-radius:999px;
       box-shadow: var(--labelShadow);
     }
     @keyframes pulseHint{
-      0%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 0 rgba(76,175,80,.35); }
-      50%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 10px rgba(76,175,80,.0); }
-      100%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 0 rgba(76,175,80,.35); }
+      0%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 0 rgba(67,160,71,.35); }
+      50%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 10px rgba(67,160,71,.0); }
+      100%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 0 rgba(67,160,71,.35); }
     }
 
-    /* 移動提示（橙 + 大字） */
+    /* 移動提示（改為綠 + 大字） */
     .cell.hint-move{
-      box-shadow: inset 0 0 0 3px var(--move), 0 0 0 6px rgba(255,111,0,.18);
+      box-shadow: inset 0 0 0 3px var(--move), 0 0 0 6px rgba(67,160,71,.18);
       animation: targetPulse 1.05s ease-in-out infinite;
     }
     .cell.hint-move::after{
@@ -163,15 +160,16 @@
     }
     @keyframes targetPulse{ 0%{ transform:scale(1) } 50%{ transform:scale(1.02) } 100%{ transform:scale(1) } }
 
-    /* 移動來源（藍環） */
+    /* 移動來源（亦改為綠色） */
     .cell.source-cue{
-      box-shadow: inset 0 0 0 3px #64b5f6, 0 0 0 6px rgba(100,181,246,.12);
+      box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 6px rgba(67,160,71,.18);
     }
 
     /* 棋子（主體色） */
     .piece{
       position:absolute; left:50%; top:50%; transform: translate(-50%,-50%);
-      border-radius:50%; box-shadow: 0 6px 16px rgba(0,0,0,.18), inset 0 0 0 3px rgba(255,255,255,.65);
+      border-radius:50%; overflow:hidden;  /* 令交叉不會超出圓形 */
+      box-shadow: 0 6px 16px rgba(0,0,0,.18), inset 0 0 0 3px rgba(255,255,255,.65);
       transition: transform .18s ease, filter .18s ease, box-shadow .18s ease, opacity .18s ease; will-change: transform;
     }
     .size-1{ width:55%; height:55%; }
@@ -180,33 +178,48 @@
     .blue-piece{ background: var(--blue); border: 2px solid #0c6fd3; }
     .orange-piece{ background: var(--orange); border: 2px solid #d36a00; }
 
-    /* 藍色：單一粗體圓環（中空） */
+    /* 藍色：單一粗體圓環 + 白描邊 */
     .blue-piece::before{
       content:"";
       position:absolute; left:50%; top:50%; transform: translate(-50%,-50%);
-      width: 70%; height: 70%;
+      width: 72%; height: 72%;
       border-radius: 50%;
-      box-shadow: 0 0 0 6px rgba(255,255,255,0.9), inset 0 0 0 6px #0c6fd3;
-      /* 外白內藍，形成圓環視覺；白色厚度避免與背景混 */
-      pointer-events:none;
+      /* 內藍7px + 外白5px 的粗環效果 */
+      box-shadow: 0 0 0 5px rgba(255,255,255,.95), inset 0 0 0 7px #0c6fd3;
+      pointer-events:none; z-index:1;
     }
 
-    /* 橙色：單一粗體交叉（X） */
+    /* 橙色：單一粗體交叉 + 白描邊；圖層低於文字 */
     .orange-piece::before,
     .orange-piece::after{
       content:"";
       position:absolute; left:50%; top:50%;
-      width: 70%; height: 10%;
-      background: #d36a00; /* 粗體交叉色 = 邊框色 */
-      border-radius: 6px;
+      width: 76%; height: 12%;
+      background: #d36a00;
+      border-radius: 8px;
       transform-origin: center;
-      pointer-events:none;
-      box-shadow: 0 1px 2px rgba(0,0,0,.2);
+      pointer-events:none; z-index:1;
+      /* 白色描邊 */
+      box-shadow: 0 0 0 4px rgba(255,255,255,.95), 0 1px 2px rgba(0,0,0,.2);
     }
     .orange-piece::before{ transform: translate(-50%,-50%) rotate(45deg); }
     .orange-piece::after { transform: translate(-50%,-50%) rotate(-45deg); }
 
-    /* 棋子中央尺寸標籤：大／中／小 */
+    /* 被移動的棋子：綠色高亮特效 */
+    .moving-piece{
+      box-shadow:
+        0 0 0 4px rgba(67,160,71,.85),
+        0 0 14px 2px rgba(67,160,71,.45),
+        inset 0 0 0 3px rgba(255,255,255,.70);
+      animation: movingPulse 1.1s ease-in-out infinite;
+    }
+    @keyframes movingPulse{
+      0%  { transform: translate(-50%,-50%) scale(1); }
+      50% { transform: translate(-50%,-50%) scale(1.03); }
+      100%{ transform: translate(-50%,-50%) scale(1); }
+    }
+
+    /* 棋子中央尺寸標籤：大／中／小（最高層，避免被紋理遮） */
     .size-badge{
       position:absolute;
       left:50%; top:50%; transform: translate(-50%,-50%);
@@ -215,6 +228,7 @@
       border-radius:999px; padding: 2px 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,.25);
       user-select:none; pointer-events:none;
+      z-index: 3;
     }
     .piece.size-1 .size-badge{ font-size:12px; padding:2px 6px; }
     .piece.size-2 .size-badge{ font-size:14px; padding:3px 8px; }
@@ -229,7 +243,7 @@
     .bounce{ animation: bounceIn .28s ease-out; }
     .press{ animation: pressDown .28s ease-out; }
 
-    /* ==== SVG Arrow Overlay（細、半透、避開中心） ==== */
+    /* ==== SVG Arrow Overlay（細、半透；端點偏移避開中心） ==== */
     .arrow-layer{
       position: fixed; left:0; top:0; width:100vw; height:100vh;
       pointer-events:none; z-index: 9999;
@@ -249,7 +263,6 @@
   <!-- SVG arrow overlay -->
   <svg id="arrowLayer" class="arrow-layer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
     <defs>
-      <!-- 縮小箭頭頭部尺寸 -->
       <marker id="headPlace" markerWidth="7" markerHeight="7" refX="5.6" refY="3.5" orient="auto">
         <polygon points="0,0 7,3.5 0,7" fill="var(--arrowPlace)"></polygon>
       </marker>
@@ -359,6 +372,9 @@
     const arrowLayer = document.getElementById('arrowLayer');
     const arrowPath  = document.getElementById('arrowPath');
 
+    // Track moving source index for green effect
+    let movingFromIndex = null;
+
     // Build 9 cells
     for(let i=0;i<9;i++){
       const c = document.createElement("div");
@@ -390,67 +406,46 @@
       scriptedMode = false;
       clearHints();
       clearArrow();
+      movingFromIndex = null; render();
     });
 
-    // --- Arrow Helpers ---
-
-    /** 取得 DOM 中心點 */
+    // --- Arrow Helpers with endpoint offset ---
     function getCenter(el){
       if(!el) return null;
       const r = el.getBoundingClientRect();
       return { x: r.left + r.width/2, y: r.top + r.height/2, w:r.width, h:r.height };
     }
-    /** 設定 SVG viewport 對齊視窗 */
     function setSvgSize(){
       arrowLayer.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`);
     }
-
-    /**
-     * 取得「偏移後」的錨點，令箭頭不直穿中心。
-     * 規則：
-     *  - 先取元素中心點 A（來源）與 B（目標）。
-     *  - 以 A→B 的向量作基準，計算其垂直單位向量 n（-dy, dx）。
-     *  - 在 A、B 兩端各沿 n 方向偏移固定像素（相對格寬比例），使路徑遠離圓心。
-     *  - 為避免 A、B 兩端偏移到同側，B 端採用反方向（-n）。
-     */
     function offsetEndpoints(fromEl, toEl){
       const fa = getCenter(fromEl), tb = getCenter(toEl);
       if(!fa || !tb) return null;
       const dx = tb.x - fa.x, dy = tb.y - fa.y;
       const len = Math.hypot(dx,dy) || 1;
-      // 垂直單位向量
-      const nx = -dy/len, ny = dx/len;
-      // 偏移距離：以目標格寬度 10% 為基準，上限 22px
+      const nx = -dy/len, ny = dx/len; // normal
       const baseW = Math.min(fa.w || 0, tb.w || 0) || 60;
       const offset = Math.min(22, baseW * 0.10);
-      // 偏移後的端點
       const f2 = { x: fa.x + nx*offset, y: fa.y + ny*offset };
       const t2 = { x: tb.x - nx*offset, y: tb.y - ny*offset };
       return { f:f2, t:t2, mid:{ x:(f2.x+t2.x)/2, y:(f2.y+t2.y)/2 }, normal:{x:nx,y:ny}, len };
     }
-
-    /** 繪製避開中心的弧線箭頭 */
     function drawArrow(fromEl, toEl, kind){ // kind: 'place'|'move'
       if(!fromEl || !toEl){ clearArrow(); return; }
       setSvgSize();
-
       const pts = offsetEndpoints(fromEl, toEl);
       if(!pts){ clearArrow(); return; }
       const { f, t, mid, normal, len } = pts;
-
-      // 控制點：mid 再沿 normal 方向做輕微偏移，讓曲線自然避開中心
       const bend = Math.min(28, len * 0.10);
       const cx = mid.x + normal.x * bend;
       const cy = mid.y + normal.y * bend;
-
       const d = `M ${f.x},${f.y} Q ${cx},${cy} ${t.x},${t.y}`;
       arrowPath.setAttribute('d', d);
-
       if(kind === 'place'){
         arrowPath.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--arrowPlace') || '#43a047');
         arrowPath.setAttribute('marker-end', 'url(#headPlace)');
       }else{
-        arrowPath.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--arrowMove') || '#ff6f00');
+        arrowPath.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--arrowMove') || '#43a047');
         arrowPath.setAttribute('marker-end', 'url(#headMove)');
       }
       arrowPath.style.opacity = '1';
@@ -468,10 +463,7 @@
     function onCellClick(index){
       if(gameOver) return;
 
-      if(!scriptedMode){
-        handleFreePlay(index);
-        return;
-      }
+      if(!scriptedMode){ handleFreePlay(index); return; }
 
       const mv = SCRIPT[stepIndex];
       if(!mv) return;
@@ -486,14 +478,13 @@
           counts.blue[mv.size]--;
           selectedSize = null; clearTrayActive();
           stepIndex++;
+          movingFromIndex = null;
 
           if(checkWin('blue')){ gameOver=true; render(); setTimeout(()=>alert("藍方勝"),10); return; }
           switchTurn();
           clearArrow();
           setTimeout(()=>runAIMoveIfAny(), 600);
-          return;
         }else{
-          // 移動步：單擊目標格
           if(index !== mv.to) return;
           const top = topPiece(mv.from);
           if(!top || top.player!=='blue' || top.size!==mv.size) return;
@@ -501,12 +492,12 @@
 
           movePiece('blue', mv.size, mv.from, mv.to);
           stepIndex++;
+          movingFromIndex = null;
 
           if(checkWin('blue')){ gameOver=true; render(); setTimeout(()=>alert("藍方勝"),10); return; }
           switchTurn();
           clearArrow();
           setTimeout(()=>runAIMoveIfAny(), 600);
-          return;
         }
       }
     }
@@ -518,6 +509,7 @@
 
       current = 'orange'; render();
       clearArrow();
+      movingFromIndex = null;
 
       if(mv.type === 'place'){
         if(!canPlace('orange', mv.size, mv.to)) return;
@@ -579,16 +571,14 @@
           const p = document.createElement("div");
           p.className = `piece ${top.player==='blue'?'blue-piece':'orange-piece'} size-${top.size}`;
 
+          if(i === movingFromIndex){ p.classList.add('moving-piece'); }
+
           const badge = document.createElement("span");
           badge.className = "size-badge";
           badge.textContent = sizeNames[top.size];
           p.appendChild(badge);
 
-          if(top.justPlaced) p.classList.add("bounce");
-          if(top.justPressed) p.classList.add("press");
           cellEl.appendChild(p);
-          delete top.justPlaced;
-          delete top.justPressed;
         }
       }
 
@@ -616,7 +606,7 @@
     }
     function placePiece(player,size,index){
       const stack = board[index];
-      stack.push({player,size, justPlaced:true, justPressed: !!(stack.length)});
+      stack.push({player,size});
       render();
     }
 
@@ -632,8 +622,6 @@
       const fromStack = board[from];
       const moving = fromStack.pop();
       const toStack = board[to];
-      moving.justPlaced = true;
-      moving.justPressed = !!(toStack.length);
       toStack.push(moving);
       render();
     }
@@ -659,14 +647,17 @@
       selectedSize = null; gameOver = false;
       stepIndex = 0; scriptedMode = true;
       clearTrayActive(); clearHints(); clearArrow();
+      movingFromIndex = null;
       render();
       showNextHint();
     }
 
-    // 提示 + 箭頭：落子 = 目標格綠光；移動 = 目標格橙光 + 來源藍環；箭頭顯示來源→目標
+    // 提示 + 箭頭：落子 = 目標格綠光；移動 = 目標格綠光 + 來源綠框；箭頭顯示來源→目標
     function showNextHint(keepSelected=false){
       clearHints();
       clearArrow();
+      movingFromIndex = null;
+
       if(!scriptedMode || gameOver || stepIndex >= SCRIPT.length) return;
       const mv = SCRIPT[stepIndex];
 
@@ -675,8 +666,7 @@
           if(!keepSelected) { selectedSize = mv.size; }
           highlightTray('blue', mv.size);
           const dst = boardEl.children[mv.to]; if(dst) dst.classList.add("hint");
-
-          // 箭頭：托盤該大小 → 目標格（端點做偏移以避開中心）
+          // 箭頭：托盤該大小 → 目標格
           const trayBtn = [...document.querySelectorAll('#trayBlue .tray-btn')]
             .find(b=>Number(b.dataset.size)===mv.size);
           const trayDot = trayBtn ? trayBtn.querySelector('.mini') : trayBtn;
@@ -684,9 +674,11 @@
         }else{
           const src = boardEl.children[mv.from]; if(src) src.classList.add("source-cue");
           const dst = boardEl.children[mv.to];   if(dst) dst.classList.add("hint-move");
+          movingFromIndex = mv.from;  // ★ 令來源棋子綠色特效
           drawArrow(src, dst, 'move');
         }
       }
+      render(); // 令 moving-piece 樣式即時生效
     }
     function highlightTray(player,size){
       document.querySelectorAll(".tray-btn").forEach(b=>{
@@ -702,4 +694,3 @@
   </script>
 </body>
 </html>
-``
