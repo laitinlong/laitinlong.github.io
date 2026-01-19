@@ -51,10 +51,8 @@
 @keyframes movingPulse{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.03)}100%{transform:translate(-50%,-50%) scale(1)}}
 .size-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-weight:900;background:rgba(0,0,0,.35);border-radius:999px;padding:2px 8px;box-shadow:0 2px 6px rgba(0,0,0,.25);user-select:none;z-index:3}
 
-/* 勝利：把棋變字（保留在棋盤內） */
-.letter-on::before,.letter-on::after{display:none}
-.letter{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:1000;color:#16a34a;text-shadow:0 2px 0 #fff,0 0 10px rgba(22,163,74,.55),0 0 18px rgba(22,163,74,.35);user-select:none;z-index:4;animation:pop .5s ease forwards;opacity:0}
-.piece.size-1 .letter{font-size:clamp(22px,5vw,36px)}.piece.size-2 .letter{font-size:clamp(26px,6vw,44px)}.piece.size-3 .letter{font-size:clamp(30px,7vw,54px)}
+/* 勝利：把三隻棋移除並在格內顯示 Y/C/H（留在棋盤） */
+.win-letter{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.2);opacity:0;font-weight:1000;color:#16a34a;text-shadow:0 2px 0 #fff,0 0 10px rgba(22,163,74,.55),0 0 18px rgba(22,163,74,.35);font-size:clamp(30px,7vw,56px);animation:pop .5s ease forwards}
 @keyframes pop{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}60%{transform:translate(-50%,-50%) scale(1.15);opacity:1}100%{transform:translate(-50%,-50%) scale(1)}}
 
 .arrow-layer{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:9999}
@@ -153,7 +151,7 @@ document.querySelectorAll(".tray-btn").forEach(btn=>{
     const player=btn.dataset.player,size=Number(btn.dataset.size);
     if(teachingMode){
       const mv=SCRIPT[stepIndex]; if(!mv||mv.actor!=='blue'||mv.type!=='place') return;
-      if(size!==mv.size) return; if(counts.blue[size]<=0) return;
+      if(size!==mv.size||counts.blue[size]<=0) return;
       if(selectedSize===size){ selectedSize=null; clearTrayGlow(); return; }
       selectedSize=size; showNextHint();
     }else{
@@ -171,7 +169,6 @@ function offsetEndpoints(aEl,bEl){ const A=getCenter(aEl),B=getCenter(bEl); if(!
 function drawArrow(aEl,bEl,kind){ if(!aEl||!bEl){ clearArrow(); return; } setSvg(); const p=offsetEndpoints(aEl,bEl); if(!p){ clearArrow(); return; } const bend=Math.min(28,p.len*0.10),cx=p.mid.x+p.nx*bend,cy=p.mid.y+p.ny*bend; arrowPath.setAttribute('d',`M ${p.f.x},${p.f.y} Q ${cx},${cy} ${p.t.x},${p.t.y}`); arrowPath.setAttribute('stroke',getComputedStyle(document.documentElement).getPropertyValue(kind==='place'?'--arrowPlace':'--arrowMove')||'#43a047'); arrowPath.setAttribute('marker-end',`url(#${kind==='place'?'headPlace':'headMove'})`); arrowPath.style.opacity='1'; }
 function clearArrow(){ arrowPath.setAttribute('d',''); arrowPath.style.opacity='0'; }
 
-/* 慢速移動：用幽靈棋子，由來源(托盤/原格)飛到目標格 */
 function ghostMove(from,toEl,player,size,dur=650){
   return new Promise(res=>{
     const A=(from&&from.nodeType===1)?getCenter(from):from, B=getCenter(toEl);
@@ -182,7 +179,7 @@ function ghostMove(from,toEl,player,size,dur=650){
     g.style.left=A.x+"px"; g.style.top=A.y+"px"; g.style.width=wh+"px"; g.style.height=wh+"px";
     const badge=document.createElement("span"); badge.className="size-badge"; badge.textContent=sizeNames[size]; g.appendChild(badge);
     g.style.transitionDuration=dur+"ms"; document.body.appendChild(g);
-    g.getBoundingClientRect(); /* reflow，確保過渡生效 */
+    g.getBoundingClientRect();
     requestAnimationFrame(()=>{ g.style.left=B.x+"px"; g.style.top=B.y+"px"; });
     setTimeout(()=>{ g.remove(); res(); }, dur+40);
   });
@@ -192,7 +189,7 @@ function topPiece(i){const s=board[i];return s.length?s[s.length-1]:null;}
 function canPlace(player,size,i){const s=board[i],t=s.length?s[s.length-1]:null;return !t||size>t.size;}
 function canMove(player,size,from,to){if(from===to)return false;const ft=topPiece(from);if(!ft||ft.player!==player||ft.size!==size)return false;const tt=topPiece(to);return !tt||size>tt.size;}
 function checkWin(p){return winLines.some(line=>line.every(i=>{const t=topPiece(i);return t&&t.player===p;}));}
-function getWinningLine(p){for(const line of winLines){if(line.every(i=>{const t=topPiece(i);return t&&t.player===p;})) return line}return null}
+function getWinningLine(p){for(const l of winLines){if(l.every(i=>{const t=topPiece(i);return t&&t.player===p;})) return l}return null}
 
 function render(){
   turnDot.className="dot "+(current==="blue"?"blue":"orange");
@@ -202,13 +199,9 @@ function render(){
     const t=topPiece(i);
     if(t){
       const p=document.createElement("div");
-      p.className=`piece ${t.player==='blue'?'blue-piece':'orange-piece'} size-${t.size}${t.letter?' letter-on':''}`;
+      p.className=`piece ${t.player==='blue'?'blue-piece':'orange-piece'} size-${t.size}`;
       if(i===movingFromIndex)p.classList.add('moving-piece');
-      if(t.letter){
-        const L=document.createElement("span"); L.className="letter"; L.textContent=t.letter; p.appendChild(L);
-      }else{
-        const b=document.createElement("span"); b.className="size-badge"; b.textContent=sizeNames[t.size]; p.appendChild(b);
-      }
+      const b=document.createElement("span"); b.className="size-badge"; b.textContent=sizeNames[t.size]; p.appendChild(b);
       cell.appendChild(p);
     }
   }
@@ -248,9 +241,7 @@ function onCellClick(index){
   if(teachingMode){
     const mv=SCRIPT[stepIndex]; if(!mv||mv.actor!=='blue') return;
     if(mv.type==='place'){
-      if(selectedSize!==mv.size){hint("請用指定大小："+sizeNames[mv.size]);return}
-      if(index!==mv.to){hint("請點綠框格");return}
-      if(!canPlace('blue',mv.size,index)){hint("不能覆蓋同等或更大");return}
+      if(selectedSize!==mv.size||index!==mv.to||!canPlace('blue',mv.size,index)){hint("請按提示落子");return}
       const trayBtn=[...document.querySelectorAll('#trayBlue .tray-btn')].find(b=>Number(b.dataset.size)===mv.size);
       const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn;
       const dst=boardEl.children[mv.to];
@@ -258,19 +249,18 @@ function onCellClick(index){
       ghostMove(dot,dst,'blue',mv.size,600).then(()=>{
         board[mv.to].push({player:'blue',size:mv.size});
         counts.blue[mv.size]--; stepIndex++; clearArrow(); clearTrayGlow(); clearHints();
-        if(checkWin('blue')){ playerWinToLetters(); unlock(); return; }
+        if(checkWin('blue')){ winToLetters(); unlock(); return; }
         current='orange'; render(); setTimeout(runAIMoveIfAny,450);
       });
     }else{
-      if(index!==mv.to){hint("請點綠框目標格");return}
-      if(!canMove('blue',mv.size,mv.from,mv.to)){hint("移動不合法");return}
+      if(index!==mv.to||!canMove('blue',mv.size,mv.from,mv.to)){hint("請按提示移動");return}
       const src=boardEl.children[mv.from],dst=boardEl.children[mv.to],pos=getCenter(src);
       lock();
-      board[mv.from].pop(); render(); /* 原格即時消失 */
+      board[mv.from].pop(); render();
       ghostMove({x:pos.x,y:pos.y},dst,'blue',mv.size,650).then(()=>{
         board[mv.to].push({player:'blue',size:mv.size});
         stepIndex++; movingFromIndex=null; clearArrow(); clearHints();
-        if(checkWin('blue')){ playerWinToLetters(); unlock(); return; }
+        if(checkWin('blue')){ winToLetters(); unlock(); return; }
         current='orange'; render(); setTimeout(runAIMoveIfAny,450);
       });
     }
@@ -305,18 +295,21 @@ function runAIMoveIfAny(){
   }
 }
 
-/* 把勝利線上 3 枚棋直接變成 Y/C/H（留在棋盤內） */
-function playerWinToLetters(){
+/* 教學模式綠方勝：移除勝利線 3 隻棋 → 在原格放入 Y/C/H（留在棋盤） */
+function winToLetters(){
   gameOver=true; clearArrow(); clearHints(); clearTrayGlow();
-  const line=getWinningLine('blue'); if(!line){ render(); return; }
+  const line=getWinningLine('blue'); if(!line) return;
   const pts=line.map(i=>({i,...getCenter(boardEl.children[i])}));
   pts.sort((a,b)=>a.x!==b.x?(a.x-b.x):(a.y-b.y));
   const letters=["Y","C","H"];
   pts.forEach((p,idx)=>{
-    const top=topPiece(p.i);
-    if(top){ top.letter=letters[idx]; }
+    board[p.i]=[]; const cell=boardEl.children[p.i];
+    cell.innerHTML="";
+    const s=document.createElement('span');
+    s.className='win-letter'; s.textContent=letters[idx];
+    s.style.animationDelay=(idx*180)+'ms';
+    cell.appendChild(s);
   });
-  render();
 }
 
 function handlePVP(index){
