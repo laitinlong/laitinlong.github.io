@@ -1,5 +1,3 @@
-
-<!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
@@ -14,9 +12,9 @@
       --cell-size: min(22vmin, 130px);
       --gap: 10px;
 
-      /* 提示與效果統一綠色 */
+      /* 教學提示與移動效果（統一綠色） */
       --hint:#43a047;     /* 放置/移動提示（綠） */
-      --move:#43a047;     /* 移動也改為綠色 */
+      --move:#43a047;     /* 移動也用綠色 */
 
       --labelShadow: 0 4px 12px rgba(0,0,0,.15);
       --arrowPlace:#43a047; /* 放置箭頭色（綠） */
@@ -111,6 +109,15 @@
     .count{ font-size:13px; color:#333; }
     .count.zero{ color:#d9363e; font-weight:800; }
 
+    /* 托盤待放置：綠色特效（玩家或 AI 在教學模式將放置該大小時） */
+    .tray-btn.glow-green .mini{
+      box-shadow:
+        0 0 0 4px rgba(67,160,71,.85),
+        0 0 14px 2px rgba(67,160,71,.45),
+        inset 0 0 0 3px rgba(255,255,255,.70);
+      animation: movingPulse 1.1s ease-in-out infinite;
+    }
+
     /* Board */
     .board-wrap{ grid-area:board; display:flex; justify-content:center; align-items:center; }
     .board{
@@ -141,11 +148,11 @@
     }
     @keyframes pulseHint{
       0%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 0 rgba(67,160,71,.35); }
-      50%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 10px rgba(67,160,71,.0); }
+      50%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 10px rgba(67,160,71,0); }
       100%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 0 rgba(67,160,71,.35); }
     }
 
-    /* 移動提示（改為綠 + 大字） */
+    /* 移動提示（綠 + 大字） */
     .cell.hint-move{
       box-shadow: inset 0 0 0 3px var(--move), 0 0 0 6px rgba(67,160,71,.18);
       animation: targetPulse 1.05s ease-in-out infinite;
@@ -168,7 +175,7 @@
     /* 棋子（主體色） */
     .piece{
       position:absolute; left:50%; top:50%; transform: translate(-50%,-50%);
-      border-radius:50%; overflow:hidden;  /* 令交叉不會超出圓形 */
+      border-radius:50%; overflow:hidden;  /* 限制紋理在圓內 */
       box-shadow: 0 6px 16px rgba(0,0,0,.18), inset 0 0 0 3px rgba(255,255,255,.65);
       transition: transform .18s ease, filter .18s ease, box-shadow .18s ease, opacity .18s ease; will-change: transform;
     }
@@ -184,12 +191,11 @@
       position:absolute; left:50%; top:50%; transform: translate(-50%,-50%);
       width: 72%; height: 72%;
       border-radius: 50%;
-      /* 內藍7px + 外白5px 的粗環效果 */
       box-shadow: 0 0 0 5px rgba(255,255,255,.95), inset 0 0 0 7px #0c6fd3;
       pointer-events:none; z-index:1;
     }
 
-    /* 橙色：單一粗體交叉 + 白描邊；圖層低於文字 */
+    /* 橙色：單一粗體交叉 + 白描邊；不遮文字（文字 z-index 更高） */
     .orange-piece::before,
     .orange-piece::after{
       content:"";
@@ -199,7 +205,6 @@
       border-radius: 8px;
       transform-origin: center;
       pointer-events:none; z-index:1;
-      /* 白色描邊 */
       box-shadow: 0 0 0 4px rgba(255,255,255,.95), 0 1px 2px rgba(0,0,0,.2);
     }
     .orange-piece::before{ transform: translate(-50%,-50%) rotate(45deg); }
@@ -219,7 +224,7 @@
       100%{ transform: translate(-50%,-50%) scale(1); }
     }
 
-    /* 棋子中央尺寸標籤：大／中／小（最高層，避免被紋理遮） */
+    /* 棋子中央尺寸標籤：大／中／小（最高層） */
     .size-badge{
       position:absolute;
       left:50%; top:50%; transform: translate(-50%,-50%);
@@ -257,6 +262,14 @@
       filter: drop-shadow(0 1px 2px rgba(0,0,0,.15));
     }
     @keyframes dashMove{ to{ stroke-dashoffset: -14; } }
+
+    /* 幽靈棋子（動畫用） */
+    .ghost{
+      position: fixed; left:0; top:0;
+      transform: translate(-50%,-50%);
+      transition: left 0.55s ease, top 0.55s ease;
+      pointer-events:none; z-index: 9000;
+    }
   </style>
 </head>
 <body>
@@ -280,8 +293,8 @@
       <div class="header-bar">
         <span id="turnDot" class="dot blue" aria-hidden="true"></span>
         <span id="turnText" class="turn-text">輪到：藍</span>
-        <button id="restartScriptBtn" class="btn" aria-label="重新開始">重新開始</button>
-        <button id="exitScriptBtn" class="btn" aria-label="退出劇本">退出劇本</button>
+        <button id="restartBtn" class="btn" aria-label="重新開始">重新開始</button>
+        <button id="modeBtn" class="btn" aria-label="切換模式">退出教學模式</button>
       </div>
     </div>
 
@@ -336,13 +349,21 @@
       [0,3,6],[1,4,7],[2,5,8],
       [0,4,8],[2,4,6]
     ];
-    let board = Array.from({length:9},()=>[]);
-    let counts = { blue:{1:2,2:2,3:2}, orange:{1:2,2:2,3:2} };
-    let current = "blue";
-    let selectedSize = null;
-    let gameOver = false;
+    const boardEl = document.getElementById("board");
+    const turnDot = document.getElementById("turnDot");
+    const turnText = document.getElementById("turnText");
+    const restartBtn = document.getElementById("restartBtn");
+    const modeBtn = document.getElementById("modeBtn");
 
-    // --- Script: 13 固定步驟 ---
+    const arrowLayer = document.getElementById('arrowLayer');
+    const arrowPath  = document.getElementById('arrowPath');
+
+    let board, counts, current, selectedSize, gameOver;
+    let teachingMode = true; // 教學模式（原劇本模式）
+    let stepIndex = 0;
+    let movingFromIndex = null;
+
+    // --- 教學模式腳本（13 步） ---
     const SCRIPT = [
       {actor:'blue',   type:'place', size:3, to:4},
       {actor:'orange', type:'place', size:3, to:8},
@@ -358,58 +379,76 @@
       {actor:'orange', type:'move',  size:3, from:4, to:8},
       {actor:'blue',   type:'place', size:2, to:4}
     ];
-    let stepIndex = 0;
-    let scriptedMode = true;
 
-    // --- Elements ---
-    const boardEl = document.getElementById("board");
-    const turnDot = document.getElementById("turnDot");
-    const turnText = document.getElementById("turnText");
-    const restartScriptBtn = document.getElementById("restartScriptBtn");
-    const exitScriptBtn = document.getElementById("exitScriptBtn");
-
-    // Arrow overlay elements
-    const arrowLayer = document.getElementById('arrowLayer');
-    const arrowPath  = document.getElementById('arrowPath');
-
-    // Track moving source index for green effect
-    let movingFromIndex = null;
-
-    // Build 9 cells
-    for(let i=0;i<9;i++){
-      const c = document.createElement("div");
-      c.className = "cell";
-      c.dataset.index = i;
-      c.addEventListener("click", ()=>onCellClick(i));
-      boardEl.appendChild(c);
+    // --- 初始化棋盤與計數 ---
+    function resetCommonState(){
+      board = Array.from({length:9},()=>[]);
+      counts = { blue:{1:2,2:2,3:2}, orange:{1:2,2:2,3:2} };
+      current = "blue";
+      selectedSize = null;
+      gameOver = false;
+      movingFromIndex = null;
+      render();
+      clearHints(); clearArrow(); clearTrayGlow();
     }
 
-    // Tray (player can click; script still preselects)
+    function resetTeaching(){
+      teachingMode = true;
+      stepIndex = 0;
+      modeBtn.textContent = "退出教學模式";
+      restartBtn.textContent = "重新開始";
+      resetCommonState();
+      showNextHint();
+    }
+
+    function resetPVP(){
+      teachingMode = false;
+      modeBtn.textContent = "開始教學模式";
+      restartBtn.textContent = "重新開始";
+      resetCommonState(); // 清空棋盤
+    }
+
+    // --- DOM: 建立 9 個格 ---
+    if(boardEl.children.length===0){
+      for(let i=0;i<9;i++){
+        const c = document.createElement("div");
+        c.className = "cell";
+        c.dataset.index = i;
+        c.addEventListener("click", ()=>onCellClick(i));
+        boardEl.appendChild(c);
+      }
+    }
+
+    // --- 控制鈕 ---
+    restartBtn.addEventListener("click", ()=>{
+      if(teachingMode) resetTeaching();
+      else resetPVP();
+    });
+    modeBtn.addEventListener("click", ()=>{
+      if(teachingMode){
+        // 退出教學 → 清空 → 進入 PVP
+        resetPVP();
+      }else{
+        // 進入教學
+        resetTeaching();
+      }
+    });
+
+    // --- 托盤點擊（僅教學落子步可用作預選大小） ---
     document.querySelectorAll(".tray-btn").forEach(btn=>{
       btn.addEventListener("click", ()=>{
-        if(gameOver || !scriptedMode) return;
+        if(gameOver || !teachingMode) return;
         const mv = SCRIPT[stepIndex];
         if(!mv || mv.actor!=='blue' || mv.type!=='place') return;
         const size = Number(btn.dataset.size);
         if(size !== mv.size) return;
         if(counts.blue[size] <= 0) return;
         selectedSize = size;
-        document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("active"));
-        btn.classList.add("active");
-        showNextHint();
+        showNextHint(); // 會加托盤綠光與箭頭
       });
     });
 
-    // Controls
-    restartScriptBtn.addEventListener("click", ()=>restartScript());
-    exitScriptBtn.addEventListener("click", ()=>{
-      scriptedMode = false;
-      clearHints();
-      clearArrow();
-      movingFromIndex = null; render();
-    });
-
-    // --- Arrow Helpers with endpoint offset ---
+    // --- 箭頭繪制（端點偏移避開中心） ---
     function getCenter(el){
       if(!el) return null;
       const r = el.getBoundingClientRect();
@@ -430,7 +469,7 @@
       const t2 = { x: tb.x - nx*offset, y: tb.y - ny*offset };
       return { f:f2, t:t2, mid:{ x:(f2.x+t2.x)/2, y:(f2.y+t2.y)/2 }, normal:{x:nx,y:ny}, len };
     }
-    function drawArrow(fromEl, toEl, kind){ // kind: 'place'|'move'
+    function drawArrow(fromEl, toEl, kind){
       if(!fromEl || !toEl){ clearArrow(); return; }
       setSvgSize();
       const pts = offsetEndpoints(fromEl, toEl);
@@ -441,13 +480,8 @@
       const cy = mid.y + normal.y * bend;
       const d = `M ${f.x},${f.y} Q ${cx},${cy} ${t.x},${t.y}`;
       arrowPath.setAttribute('d', d);
-      if(kind === 'place'){
-        arrowPath.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--arrowPlace') || '#43a047');
-        arrowPath.setAttribute('marker-end', 'url(#headPlace)');
-      }else{
-        arrowPath.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--arrowMove') || '#43a047');
-        arrowPath.setAttribute('marker-end', 'url(#headMove)');
-      }
+      arrowPath.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue(kind==='place'?'--arrowPlace':'--arrowMove') || '#43a047');
+      arrowPath.setAttribute('marker-end', `url(#${kind==='place'?'headPlace':'headMove'})`);
       arrowPath.style.opacity = '1';
     }
     function clearArrow(){
@@ -455,129 +489,52 @@
       arrowPath.style.opacity = '0';
     }
     window.addEventListener('resize', ()=>{
-      if(!scriptedMode || gameOver) return;
+      if(!teachingMode || gameOver) return;
       showNextHint(true);
     }, {passive:true});
 
-    // --- Interaction ---
-    function onCellClick(index){
-      if(gameOver) return;
-
-      if(!scriptedMode){ handleFreePlay(index); return; }
-
-      const mv = SCRIPT[stepIndex];
-      if(!mv) return;
-
-      if(mv.actor==='blue'){
-        if(mv.type==='place'){
-          if(selectedSize !== mv.size) return;
-          if(index !== mv.to) return;
-          if(!canPlace('blue', mv.size, index)) return;
-
-          placePiece('blue', mv.size, index);
-          counts.blue[mv.size]--;
-          selectedSize = null; clearTrayActive();
-          stepIndex++;
-          movingFromIndex = null;
-
-          if(checkWin('blue')){ gameOver=true; render(); setTimeout(()=>alert("藍方勝"),10); return; }
-          switchTurn();
-          clearArrow();
-          setTimeout(()=>runAIMoveIfAny(), 600);
-        }else{
-          if(index !== mv.to) return;
-          const top = topPiece(mv.from);
-          if(!top || top.player!=='blue' || top.size!==mv.size) return;
-          if(!canMove('blue', mv.size, mv.from, mv.to)) return;
-
-          movePiece('blue', mv.size, mv.from, mv.to);
-          stepIndex++;
-          movingFromIndex = null;
-
-          if(checkWin('blue')){ gameOver=true; render(); setTimeout(()=>alert("藍方勝"),10); return; }
-          switchTurn();
-          clearArrow();
-          setTimeout(()=>runAIMoveIfAny(), 600);
-        }
-      }
+    // --- 工具：頂層棋子 / 規則 ---
+    function topPiece(index){ const s = board[index]; return s.length ? s[s.length-1] : null; }
+    function canPlace(player,size,index){
+      const stack = board[index];
+      const top = stack.length ? stack[stack.length-1] : null;
+      if(!top) return true;
+      return size > top.size; // 大吃小
+    }
+    function canMove(player,size,from,to){
+      if(from===to) return false;
+      const fromTop = topPiece(from);
+      if(!fromTop || fromTop.player!==player || fromTop.size!==size) return false;
+      const toTop = topPiece(to);
+      if(!toTop) return true;
+      return size > toTop.size;
+    }
+    function checkWin(player){
+      return winLines.some(line=>{
+        return line.every(i=>{
+          const t = topPiece(i);
+          return t && t.player===player;
+        });
+      });
     }
 
-    function runAIMoveIfAny(){
-      if(gameOver || stepIndex >= SCRIPT.length) { showNextHint(); return; }
-      const mv = SCRIPT[stepIndex];
-      if(mv.actor !== 'orange'){ showNextHint(); return; }
-
-      current = 'orange'; render();
-      clearArrow();
-      movingFromIndex = null;
-
-      if(mv.type === 'place'){
-        if(!canPlace('orange', mv.size, mv.to)) return;
-        placePiece('orange', mv.size, mv.to);
-        counts.orange[mv.size]--;
-      }else{
-        const top = topPiece(mv.from);
-        if(!top || top.player!=='orange' || top.size!==mv.size || !canMove('orange', mv.size, mv.from, mv.to)) return;
-        movePiece('orange', mv.size, mv.from, mv.to);
-      }
-
-      if(checkWin('orange')){ gameOver=true; render(); setTimeout(()=>alert("橙方勝"),10); return; }
-      stepIndex++;
-      switchTurn();
-      showNextHint();
-    }
-
-    // --- Free PVP (after exit) ---
-    let selectedFrom = null;
-    function handleFreePlay(index){
-      const tp = topPiece(index);
-      if(selectedSize !== null){
-        if(!canPlace(current, selectedSize, index)) return;
-        placePiece(current, selectedSize, index);
-        counts[current][selectedSize]--;
-        selectedSize = null; clearTrayActive();
-        if(checkWin(current)){ gameOver=true; render(); setTimeout(()=>alert(current==='blue'?"藍方勝":"橙方勝"),10); return; }
-        switchTurn();
-        return;
-      }
-      if(selectedFrom === null){
-        if(!tp || tp.player !== current) return;
-        selectedFrom = index; render();
-        return;
-      }
-      const fromTop = topPiece(selectedFrom);
-      if(!fromTop || fromTop.player !== current){ selectedFrom=null; render(); return; }
-      if(selectedFrom === index){ selectedFrom=null; render(); return; }
-      if(!canMove(current, fromTop.size, selectedFrom, index)) return;
-
-      movePiece(current, fromTop.size, selectedFrom, index);
-      selectedFrom = null;
-      if(checkWin(current)){ gameOver=true; render(); setTimeout(()=>alert(current==='blue'?"藍方勝":"橙方勝"),10); return; }
-      switchTurn();
-    }
-
-    // --- Rules & Rendering ---
+    // --- 渲染 ---
     function render(){
       turnDot.className = "dot " + (current==="blue"?"blue":"orange");
-      document.getElementById("turnText").textContent = "輪到：" + (current==="blue"?"藍":"橙");
+      turnText.textContent = "輪到：" + (current==="blue"?"藍":"橙");
 
       for(let i=0;i<9;i++){
         const cellEl = boardEl.children[i];
-        const old = cellEl.querySelector(".piece");
-        if(old) old.remove();
-
+        cellEl.innerHTML = ""; // 清空並只放頂層
         const top = topPiece(i);
         if(top){
           const p = document.createElement("div");
           p.className = `piece ${top.player==='blue'?'blue-piece':'orange-piece'} size-${top.size}`;
-
-          if(i === movingFromIndex){ p.classList.add('moving-piece'); }
-
+          if(i === movingFromIndex) p.classList.add('moving-piece');
           const badge = document.createElement("span");
           badge.className = "size-badge";
           badge.textContent = sizeNames[top.size];
           p.appendChild(badge);
-
           cellEl.appendChild(p);
         }
       }
@@ -591,48 +548,18 @@
       });
     }
 
-    function clearTrayActive(){
-      document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("active"));
-    }
     function clearHints(){
       Array.from(boardEl.children).forEach(c=>c.classList.remove("hint","hint-move","source-cue"));
     }
-
-    function canPlace(player,size,index){
-      const stack = board[index];
-      const top = stack.length ? stack[stack.length-1] : null;
-      if(!top) return true;
-      return size > top.size; // 大吃小
+    function clearTrayGlow(){
+      document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("glow-green","active"));
     }
-    function placePiece(player,size,index){
-      const stack = board[index];
-      stack.push({player,size});
-      render();
-    }
-
-    function canMove(player,size,from,to){
-      if(from===to) return false;
-      const fromTop = topPiece(from);
-      if(!fromTop || fromTop.player!==player || fromTop.size!==size) return false;
-      const toTop = topPiece(to);
-      if(!toTop) return true;
-      return size > toTop.size;
-    }
-    function movePiece(player,size,from,to){
-      const fromStack = board[from];
-      const moving = fromStack.pop();
-      const toStack = board[to];
-      toStack.push(moving);
-      render();
-    }
-    function topPiece(index){ const s = board[index]; return s.length ? s[s.length-1] : null; }
-
-    function checkWin(player){
-      return winLines.some(line=>{
-        return line.every(i=>{
-          const t = topPiece(i);
-          return t && t.player===player;
-        });
+    function highlightTray(player,size){
+      clearTrayGlow();
+      document.querySelectorAll(".tray-btn").forEach(b=>{
+        if(b.dataset.player===player && Number(b.dataset.size)===size){
+          b.classList.add("glow-green","active");
+        }
       });
     }
     function switchTurn(){
@@ -640,56 +567,192 @@
       render();
     }
 
-    function restartScript(){
-      board = Array.from({length:9},()=>[]);
-      counts = { blue:{1:2,2:2,3:2}, orange:{1:2,2:2,3:2} };
-      current = "blue";
-      selectedSize = null; gameOver = false;
-      stepIndex = 0; scriptedMode = true;
-      clearTrayActive(); clearHints(); clearArrow();
-      movingFromIndex = null;
-      render();
-      showNextHint();
-    }
+    // --- 幽靈棋子動畫（從 elA → elB） ---
+    function ghostMove(fromEl, toEl, player, size, durationMs=550){
+      return new Promise((resolve)=>{
+        const from = getCenter(fromEl), to = getCenter(toEl);
+        if(!from || !to){ resolve(); return; }
 
-    // 提示 + 箭頭：落子 = 目標格綠光；移動 = 目標格綠光 + 來源綠框；箭頭顯示來源→目標
-    function showNextHint(keepSelected=false){
-      clearHints();
-      clearArrow();
-      movingFromIndex = null;
+        // 目標格大小對應：大0.95、中0.72、小0.55
+        const cellW = to.w || 80;
+        const sizeRatio = (size===3?0.95: size===2?0.72:0.55);
+        const w = cellW * sizeRatio, h=w;
 
-      if(!scriptedMode || gameOver || stepIndex >= SCRIPT.length) return;
-      const mv = SCRIPT[stepIndex];
+        const g = document.createElement("div");
+        g.className = `piece ${player==='blue'?'blue-piece':'orange-piece'} size-${size} ghost`;
+        g.style.left = from.x + "px";
+        g.style.top  = from.y + "px";
+        g.style.width = w + "px";
+        g.style.height= h + "px";
+        // 尺寸標籤
+        const badge = document.createElement("span");
+        badge.className = "size-badge";
+        badge.textContent = sizeNames[size];
+        g.appendChild(badge);
 
-      if(mv.actor==='blue'){
-        if(mv.type==='place'){
-          if(!keepSelected) { selectedSize = mv.size; }
-          highlightTray('blue', mv.size);
-          const dst = boardEl.children[mv.to]; if(dst) dst.classList.add("hint");
-          // 箭頭：托盤該大小 → 目標格
-          const trayBtn = [...document.querySelectorAll('#trayBlue .tray-btn')]
-            .find(b=>Number(b.dataset.size)===mv.size);
-          const trayDot = trayBtn ? trayBtn.querySelector('.mini') : trayBtn;
-          drawArrow(trayDot || trayBtn, dst, 'place');
-        }else{
-          const src = boardEl.children[mv.from]; if(src) src.classList.add("source-cue");
-          const dst = boardEl.children[mv.to];   if(dst) dst.classList.add("hint-move");
-          movingFromIndex = mv.from;  // ★ 令來源棋子綠色特效
-          drawArrow(src, dst, 'move');
-        }
-      }
-      render(); // 令 moving-piece 樣式即時生效
-    }
-    function highlightTray(player,size){
-      document.querySelectorAll(".tray-btn").forEach(b=>{
-        b.classList.remove("active");
-        if(b.dataset.player===player && Number(b.dataset.size)===size) b.classList.add("active");
+        // 動畫時間
+        g.style.transitionDuration = durationMs + "ms";
+        document.body.appendChild(g);
+
+        // 下一幀開始移動
+        requestAnimationFrame(()=>{
+          g.style.left = to.x + "px";
+          g.style.top  = to.y + "px";
+        });
+
+        // 完成後清除
+        setTimeout(()=>{ g.remove(); resolve(); }, durationMs + 40);
       });
     }
 
-    // Init
-    render();
-    showNextHint();
+    // --- 教學模式：顯示下一步提示（含托盤綠光 + 箭頭 + 格子提示） ---
+    function showNextHint(keepSelected=false){
+      clearHints(); clearArrow(); clearTrayGlow();
+      movingFromIndex = null;
+
+      if(!teachingMode || gameOver || stepIndex >= SCRIPT.length){ render(); return; }
+      const mv = SCRIPT[stepIndex];
+
+      // 誰的回合
+      current = mv.actor; render();
+
+      if(mv.type==='place'){
+        // 托盤綠光（玩家或 AI）
+        highlightTray(mv.actor, mv.size);
+        // 目標格提示
+        const dst = boardEl.children[mv.to];
+        if(dst) dst.classList.add("hint");
+        // 箭頭：托盤 → 目標格（只對藍方顯示亦可；這裡兩方都顯示）
+        const trayBtn = [...document.querySelectorAll(`#tray${mv.actor==='blue'?'Blue':'Orange'} .tray-btn`)]
+          .find(b=>Number(b.dataset.size)===mv.size);
+        const trayDot = trayBtn ? trayBtn.querySelector('.mini') : trayBtn;
+        drawArrow(trayDot || trayBtn, dst, 'place');
+
+        if(mv.actor==='blue' && !keepSelected) selectedSize = mv.size;
+      }else{
+        // 移動：來源 + 目標都綠色
+        const src = boardEl.children[mv.from];
+        const dst = boardEl.children[mv.to];
+        if(src) src.classList.add("source-cue");
+        if(dst) dst.classList.add("hint-move");
+        movingFromIndex = mv.from; // 來源棋子綠色特效
+        drawArrow(src, dst, 'move');
+      }
+
+      render(); // 套用 moving-piece 特效
+    }
+
+    // --- 互動：玩家點擊棋盤 ---
+    function onCellClick(index){
+      if(gameOver) return;
+
+      if(!teachingMode){
+        // PVP 模式：自由下
+        // 這裡簡化：只示範放子（如需完整 PVP 移動可擴展）
+        return;
+      }
+
+      const mv = SCRIPT[stepIndex];
+      if(!mv || mv.actor!=='blue') return;
+
+      if(mv.type==='place'){
+        if(selectedSize !== mv.size) return;
+        if(index !== mv.to) return;
+        if(!canPlace('blue', mv.size, index)) return;
+
+        // 動畫：托盤 → 目標格
+        const trayBtn = [...document.querySelectorAll('#trayBlue .tray-btn')]
+          .find(b=>Number(b.dataset.size)===mv.size);
+        const trayDot = trayBtn ? trayBtn.querySelector('.mini') : trayBtn;
+        const dstEl = boardEl.children[mv.to];
+
+        disableUI();
+        ghostMove(trayDot, dstEl, 'blue', mv.size, 550).then(()=>{
+          // 真正落子
+          const stack = board[mv.to];
+          stack.push({player:'blue', size:mv.size});
+          counts.blue[mv.size]--;
+          stepIndex++;
+          clearArrow(); clearTrayGlow(); clearHints();
+          if(checkWin('blue')){ gameOver=true; render(); alert("藍方勝"); enableUI(); return; }
+          current='orange'; render();
+          setTimeout(runAIMoveIfAny, 450);
+        });
+      }else{
+        // 移動步：單擊目標格
+        if(index !== mv.to) return;
+        const top = topPiece(mv.from);
+        if(!top || top.player!=='blue' || top.size!==mv.size) return;
+        if(!canMove('blue', mv.size, mv.from, mv.to)) return;
+
+        const srcEl = boardEl.children[mv.from];
+        const dstEl = boardEl.children[mv.to];
+
+        disableUI();
+        movingFromIndex = mv.from; render();
+        ghostMove(srcEl, dstEl, 'blue', mv.size, 600).then(()=>{
+          // 真正移動
+          const moving = board[mv.from].pop();
+          board[mv.to].push(moving);
+          stepIndex++;
+          movingFromIndex = null;
+          clearArrow(); clearHints();
+          if(checkWin('blue')){ gameOver=true; render(); alert("藍方勝"); enableUI(); return; }
+          current='orange'; render();
+          setTimeout(runAIMoveIfAny, 450);
+        });
+      }
+    }
+
+    // --- 教學模式：AI 動畫行動 ---
+    function runAIMoveIfAny(){
+      if(gameOver || stepIndex >= SCRIPT.length){ showNextHint(); enableUI(); return; }
+      const mv = SCRIPT[stepIndex];
+      if(mv.actor !== 'orange'){ showNextHint(); enableUI(); return; }
+
+      showNextHint(true); // 顯示綠框與箭頭（AI）
+
+      if(mv.type==='place'){
+        const trayBtn = [...document.querySelectorAll('#trayOrange .tray-btn')]
+          .find(b=>Number(b.dataset.size)===mv.size);
+        const trayDot = trayBtn ? trayBtn.querySelector('.mini') : trayBtn;
+        const dstEl = boardEl.children[mv.to];
+        ghostMove(trayDot, dstEl, 'orange', mv.size, 550).then(()=>{
+          const stack = board[mv.to];
+          stack.push({player:'orange', size:mv.size});
+          counts.orange[mv.size]--;
+          stepIndex++;
+          clearArrow(); clearTrayGlow(); clearHints();
+          if(checkWin('orange')){ gameOver=true; render(); alert("橙方勝"); enableUI(); return; }
+          current='blue'; render();
+          showNextHint();
+          enableUI();
+        });
+      }else{
+        const srcEl = boardEl.children[mv.from];
+        const dstEl = boardEl.children[mv.to];
+        movingFromIndex = mv.from; render();
+        ghostMove(srcEl, dstEl, 'orange', mv.size, 600).then(()=>{
+          const moving = board[mv.from].pop();
+          board[mv.to].push(moving);
+          stepIndex++;
+          movingFromIndex = null;
+          clearArrow(); clearHints();
+          if(checkWin('orange')){ gameOver=true; render(); alert("橙方勝"); enableUI(); return; }
+          current='blue'; render();
+          showNextHint();
+          enableUI();
+        });
+      }
+    }
+
+    // --- UI enable/disable 在動畫期間避免誤觸 ---
+    let uiLocked = false;
+    function disableUI(){ uiLocked = true; document.body.style.pointerEvents='none'; }
+    function enableUI(){ uiLocked = false; document.body.style.pointerEvents='auto'; }
+
+    // --- 初始化 ---
+    resetTeaching(); // 預設進入教學模式
   })();
   </script>
 </body>
