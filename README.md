@@ -1,5 +1,5 @@
 
-
+<!doctype html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
@@ -54,23 +54,30 @@
 @keyframes movingPulse{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.03)}100%{transform:translate(-50%,-50%) scale(1)}}
 .size-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-weight:900;background:rgba(0,0,0,.35);border-radius:999px;padding:2px 8px;box-shadow:0 2px 6px rgba(0,0,0,.25);user-select:none;z-index:3}
 
-/* 勝利字母（動畫 & 靜態，層級高） */
+/* 勝利字母 */
 .win-letter,.win-letter-still{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:1000;color:#16a34a;text-shadow:0 2px 0 #fff,0 0 10px rgba(22,163,74,.55),0 0 18px rgba(22,163,74,.35);font-size:clamp(30px,7vw,56px);pointer-events:none;z-index:30}
-.win-letter{transform:translate(-50%,-50%) scale(.2);opacity:0;animation:pop .5s ease forwards}
-@keyframes pop{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}60%{transform:translate(-50%,-50%) scale(1.15);opacity:1}100%{transform:translate(-50%,-50%) scale(1)}}
+.win-letter{transform:translate(-50%,-50%) scale(.2);opacity:0;animation:pop .65s cubic-bezier(.22,1,.36,1) forwards}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}60%{transform:translate(-50%,-50%) scale(1.12);opacity:1}100%{transform:translate(-50%,-50%) scale(1)}}
 
-/* SVG Arrow Layer（會以 JS 動態改 width/height 配合 visualViewport） */
+/* SVG Arrow（由 JS 用 visualViewport 同步） */
 .arrow-layer{position:fixed;left:0;top:0;pointer-events:none;z-index:9999}
 .arrow-path{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5 12;opacity:.8;animation:dashMove 1.2s linear infinite;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
 @keyframes dashMove{to{stroke-dashoffset:-14}}
 
-.ghost{position:fixed;left:0;top:0;transform:translate(-50%,-50%);transition:left .65s ease,top .65s ease;pointer-events:none;z-index:9000;will-change:left,top}
+/* ★ 更順滑：改用 transform 轉場 + GPU 加速 */
+.ghost{
+  position:fixed;left:0;top:0;
+  transform:translate3d(0,0,0);
+  transition:transform .78s cubic-bezier(.22,1,.36,1);
+  will-change:transform;
+  pointer-events:none;z-index:9000;
+}
+
 .msg{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:#111;color:#fff;padding:8px 12px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s}
 .msg.show{opacity:.9}
 </style>
 </head>
 <body>
-<!-- SVG overlay：寬高由 JS 以 visualViewport 實時設定，以免手機錯位 -->
 <svg id="arrowLayer" class="arrow-layer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" width="100%" height="100%">
   <defs>
     <marker id="headPlace" markerWidth="7" markerHeight="7" refX="5.6" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="var(--arrowPlace)"/></marker>
@@ -128,7 +135,6 @@ let teachingMode=true,stepIndex=0,movingFromIndex=null,pvpSelectedFrom=null;
 let winLetters={};
 let currentArrow=null; let ghostAnim=null;
 
-/* 劇本 */
 const SCRIPT=[
   {actor:'blue',type:'place',size:3,to:4},
   {actor:'orange',type:'place',size:3,to:8},
@@ -145,7 +151,7 @@ const SCRIPT=[
   {actor:'blue',type:'place',size:2,to:4}
 ];
 
-/* 建 9 格（含 content + overlay） */
+/* 建格：content + overlay（overlay 放勝利字母，render 唔清） */
 if(!boardEl.children.length){
   for(let i=0;i<9;i++){
     const c=document.createElement("div"); c.className="cell"; c.dataset.index=i;
@@ -157,7 +163,7 @@ if(!boardEl.children.length){
   }
 }
 
-/* 狀態 Reset */
+/* Reset */
 function resetCommon(){ board=Array.from({length:9},()=>[]); counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}}; selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null; currentArrow=null; clearArrow(); render(); clearHints(); clearTrayGlow(); }
 function clearWinLettersDOM(){ Array.from(boardEl.children).forEach(c=>{ const ov=c.querySelector('.cell-overlay'); if(ov) ov.innerHTML=""; }); winLetters={}; }
 function resetTeaching(){ clearWinLettersDOM(); teachingMode=true; stepIndex=0; modeBtn.textContent="退出教學模式"; restartBtn.style.display="none"; swapBtn.style.display="none"; resetCommon(); current="blue"; showNextHint(); }
@@ -167,7 +173,7 @@ restartBtn.addEventListener("click",()=>{ if(!teachingMode) resetPVP("blue"); })
 swapBtn.addEventListener("click",()=>{ if(!teachingMode){ current=(current==="blue")?"orange":"blue"; resetPVP(current); hint("已換邊起手："+(current==="blue"?"綠":"橙")); }});
 modeBtn.addEventListener("click",()=>{ teachingMode?resetPVP("blue"):resetTeaching(); });
 
-/* 托盤（PVP 點托盤會取消盤內選中） */
+/* 托盤點擊（PVP 會清除盤內選中來源） */
 document.querySelectorAll(".tray-btn").forEach(btn=>{
   btn.addEventListener("click",()=>{
     if(gameOver) return;
@@ -187,20 +193,16 @@ document.querySelectorAll(".tray-btn").forEach(btn=>{
   });
 });
 
-/* 幾何 & SVG 尺寸（支援手機 VisualViewport） */
+/* VisualViewport 尺寸 */
 function layoutArrowLayer(){
   const vv=window.visualViewport;
-  if(vv){ // 手機：用 visual viewport 實際尺寸
+  if(vv){
     arrowLayer.style.width = vv.width + "px";
     arrowLayer.style.height= vv.height+ "px";
-    arrowLayer.style.left  = "0px";
-    arrowLayer.style.top   = "0px";
     arrowLayer.setAttribute('viewBox',`0 0 ${vv.width} ${vv.height}`);
-  }else{  // 桌面 fallback
+  }else{
     arrowLayer.style.width = "100vw";
     arrowLayer.style.height= "100vh";
-    arrowLayer.style.left  = "0px";
-    arrowLayer.style.top   = "0px";
     arrowLayer.setAttribute('viewBox',`0 0 ${window.innerWidth} ${window.innerHeight}`);
   }
 }
@@ -212,7 +214,7 @@ function offsetEndpoints(aEl,bEl){
   return {f,t,mid,nx,ny,len};
 }
 
-/* 畫箭頭（每次以最新 viewport 尺寸重算） */
+/* 畫箭頭 */
 function drawArrow(aEl,bEl,kind){
   if(!aEl||!bEl){ clearArrow(); return; }
   layoutArrowLayer();
@@ -225,21 +227,24 @@ function drawArrow(aEl,bEl,kind){
 }
 function clearArrow(){ arrowPath.setAttribute('d',''); arrowPath.style.opacity='0'; currentArrow=null; }
 
-/* 幽靈棋（動畫期持續追蹤目標中心，避免手機縮放錯位） */
-function ghostMove(from,toEl,player,size,dur=650){
+/* ★ 更順滑幽靈棋：transform: translate3d 過場 + 跟隨 viewport */
+function ghostMove(from,toEl,player,size,dur=780){
   return new Promise(res=>{
     const A=(from&&from.nodeType===1)?getCenter(from):from, B=getCenter(toEl);
     if(!A||!B){ res(); return; }
     const cw=B.w||80,ratio=(size===3?0.95:size===2?0.72:0.55),wh=cw*ratio;
     const g=document.createElement("div");
     g.className=`piece ${player==='blue'?'blue-piece':'orange-piece'} size-${size} ghost`;
-    g.style.left=A.x+"px"; g.style.top=A.y+"px"; g.style.width=wh+"px"; g.style.height=wh+"px";
+    g.style.width=wh+"px"; g.style.height=wh+"px";
     const badge=document.createElement("span"); badge.className="size-badge"; badge.textContent=sizeNames[size]; g.appendChild(badge);
-    g.style.transitionDuration=dur+"ms"; document.body.appendChild(g);
-    g.getBoundingClientRect();
-    requestAnimationFrame(()=>{ const B2=getCenter(toEl); if(B2){ g.style.left=B2.x+"px"; g.style.top=B2.y+"px"; } });
-    const end=Date.now()+dur+30; ghostAnim={el:g,toEl,endTime:end};
-    setTimeout(()=>{ ghostAnim=null; g.remove(); res(); }, dur+40);
+    document.body.appendChild(g);
+    // 起點
+    g.style.transform=`translate3d(${A.x}px, ${A.y}px, 0)`;
+    // 下一幀去終點
+    requestAnimationFrame(()=>{ const B2=getCenter(toEl)||B; g.style.transform=`translate3d(${B2.x}px, ${B2.y}px, 0)`; });
+    const end=Date.now()+dur+40; ghostAnim={el:g,toEl,endTime:end};
+    // 完成
+    setTimeout(()=>{ ghostAnim=null; g.remove(); res(); }, dur+50);
   });
 }
 
@@ -309,21 +314,21 @@ function onCellClick(index){
       const trayBtn=[...document.querySelectorAll('#trayBlue .tray-btn')].find(b=>Number(b.dataset.size)===mv.size);
       const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn; const dst=boardEl.children[mv.to];
       lock();
-      ghostMove(dot,dst,'blue',mv.size,600).then(()=>{
+      ghostMove(dot,dst,'blue',mv.size,780).then(()=>{
         board[mv.to].push({player:'blue',size:mv.size});
         counts.blue[mv.size]--; stepIndex++; clearTrayGlow(); clearHints(); clearArrow();
         if(checkWin('blue')){ winToLetters(); unlock(); return; }
-        current='orange'; render(); setTimeout(runAIMoveIfAny,450);
+        current='orange'; render(); setTimeout(runAIMoveIfAny,420);
       });
     }else{
       if(index!==mv.to||!canMove('blue',mv.size,mv.from,mv.to)){hint("請按提示移動");return}
       const src=boardEl.children[mv.from],dst=boardEl.children[mv.to],pos=getCenter(src);
       lock(); board[mv.from].pop(); render();
-      ghostMove({x:pos.x,y:pos.y},dst,'blue',mv.size,650).then(()=>{
+      ghostMove({x:pos.x,y:pos.y},dst,'blue',780).then(()=>{
         board[mv.to].push({player:'blue',size:mv.size});
         stepIndex++; movingFromIndex=null; clearHints(); clearArrow();
         if(checkWin('blue')){ winToLetters(); unlock(); return; }
-        current='orange'; render(); setTimeout(runAIMoveIfAny,450);
+        current='orange'; render(); setTimeout(runAIMoveIfAny,420);
       });
     }
   }else{
@@ -338,7 +343,7 @@ function runAIMoveIfAny(){
   if(mv.type==='place'){
     const trayBtn=[...document.querySelectorAll('#trayOrange .tray-btn')].find(b=>Number(b.dataset.size)===mv.size);
     const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn; const dst=boardEl.children[mv.to];
-    ghostMove(dot,dst,'orange',mv.size,600).then(()=>{
+    ghostMove(dot,dst,'orange',750).then(()=>{
       board[mv.to].push({player:'orange',size:mv.size});
       counts.orange[mv.size]--; stepIndex++; clearTrayGlow(); clearHints(); clearArrow();
       if(checkWin('orange')){ gameOver=true; render(); alert("橙方勝"); unlock(); return; }
@@ -347,7 +352,7 @@ function runAIMoveIfAny(){
   }else{
     const src=boardEl.children[mv.from],dst=boardEl.children[mv.to],pos=getCenter(src);
     board[mv.from].pop(); render();
-    ghostMove({x:pos.x,y:pos.y},dst,'orange',mv.size,650).then(()=>{
+    ghostMove({x:pos.x,y:pos.y},dst,'orange',780).then(()=>{
       board[mv.to].push({player:'orange',size:mv.size});
       stepIndex++; movingFromIndex=null; clearHints(); clearArrow();
       if(checkWin('orange')){ gameOver=true; render(); alert("橙方勝"); unlock(); return; }
@@ -356,7 +361,7 @@ function runAIMoveIfAny(){
   }
 }
 
-/* 教學勝利：移除 3 子 → overlay 放 Y/C/H（動畫 + 持久化） */
+/* 勝利：移除 3 子 → overlay 放 Y/C/H（動畫 + 持久化） */
 function winToLetters(){
   gameOver=true; clearArrow(); clearHints(); clearTrayGlow();
   const line=getWinningLine('blue'); if(!line) return;
@@ -368,8 +373,8 @@ function winToLetters(){
     const cell=boardEl.children[p.i],content=cell.querySelector('.cell-content'),overlay=cell.querySelector('.cell-overlay');
     content.innerHTML=""; overlay.innerHTML="";
     const s=document.createElement('span'); s.className='win-letter'; s.textContent=letters[idx];
-    s.style.animationDelay=(idx*180)+'ms'; overlay.appendChild(s);
-    setTimeout(()=>{ overlay.innerHTML=""; const st=document.createElement('span'); st.className='win-letter-still'; st.textContent=letters[idx]; overlay.appendChild(st); }, 700+idx*180);
+    s.style.animationDelay=(idx*160)+'ms'; overlay.appendChild(s);
+    setTimeout(()=>{ overlay.innerHTML=""; const st=document.createElement('span'); st.className='win-letter-still'; st.textContent=letters[idx]; overlay.appendChild(st); }, 650+idx*160);
   });
 }
 
@@ -403,12 +408,12 @@ function lock(){ uiLocked=true; document.body.style.pointerEvents='none'; }
 function unlock(){ uiLocked=false; document.body.style.pointerEvents='auto'; }
 function hint(t){ msgEl.textContent=t; msgEl.classList.add('show'); clearTimeout(hint._t); hint._t=setTimeout(()=>msgEl.classList.remove('show'),1400); }
 
-/* —— 手機重繪同步：視窗變化時 → 更新 SVG 尺寸、重畫箭頭、追踪幽靈棋 —— */
+/* —— 視窗變化：更新 SVG、重畫箭頭、追蹤幽靈棋 —— */
 function redrawArrowIfAny(){ if(!currentArrow) return; const {fromEl,toEl,kind}=currentArrow; drawArrow(fromEl,toEl,kind); }
 function followGhostDuringAnim(){
   if(!ghostAnim) return;
   const now=Date.now(); if(now>ghostAnim.endTime){ ghostAnim=null; return; }
-  const B=getCenter(ghostAnim.toEl); if(B){ ghostAnim.el.style.left=B.x+"px"; ghostAnim.el.style.top=B.y+"px"; }
+  const B=getCenter(ghostAnim.toEl); if(B){ ghostAnim.el.style.transform=`translate3d(${B.x}px, ${B.y}px, 0)`; }
   requestAnimationFrame(followGhostDuringAnim);
 }
 function viewportSync(){ layoutArrowLayer(); redrawArrowIfAny(); followGhostDuringAnim(); }
@@ -420,7 +425,7 @@ if(window.visualViewport){
 const ro=new ResizeObserver(viewportSync);
 ro.observe(document.documentElement); ro.observe(document.body); ro.observe(boardEl);
 
-/* 啟動 */
+/* start */
 layoutArrowLayer();
 resetTeaching();
 })();
