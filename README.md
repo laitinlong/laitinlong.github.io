@@ -102,18 +102,12 @@
     .mini.size-1{ width:28px; height:28px; }
     .mini.size-2{ width:34px; height:34px; }
     .mini.size-3{ width:40px; height:40px; }
-    .mini.blue{
-      background:var(--blue);
-      background-image: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.70) 0 2px, transparent 2px 8px);
-      border:2px solid #0c6fd3;
-    }
-    .mini.orange{
-      background:var(--orange);
+    .mini.blue{ background:var(--blue); border:2px solid #0c6fd3;
+      background-image: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.70) 0 2px, transparent 2px 8px); }
+    .mini.orange{ background:var(--orange); border:2px solid #d36a00;
       background-image:
         repeating-linear-gradient(0deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px),
-        repeating-linear-gradient(90deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px);
-      border:2px solid #d36a00;
-    }
+        repeating-linear-gradient(90deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px); }
 
     /* 托盤：大／中／小標籤 + 剩餘數量 */
     .mini-badge{
@@ -184,17 +178,17 @@
       position:absolute; left:50%; top:50%; transform: translate(-50%,-50%);
       border-radius:50%; box-shadow: 0 6px 16px rgba(0,0,0,.18), inset 0 0 0 3px rgba(255,255,255,.65);
       transition: transform .18s ease, filter .18s ease, box-shadow .18s ease, opacity .18s ease; will-change: transform;
+      z-index: 1; /* 棋子本身在箭頭上層（因箭頭是全屏overlay） */
     }
     .size-1{ width:55%; height:55%; }
     .size-2{ width:72%; height:72%; }
     .size-3{ width:95%; height:95%; }
-    .blue-piece{ background: var(--blue);
-      background-image: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.70) 0 2px, transparent 2px 8px);
-      border: 2px solid #0c6fd3; }
-    .orange-piece{ background: var(--orange);
-      background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px),
-                       repeating-linear-gradient(90deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px);
-      border: 2px solid #d36a00; }
+    .blue-piece{ background: var(--blue); border: 2px solid #0c6fd3;
+      background-image: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.70) 0 2px, transparent 2px 8px); }
+    .orange-piece{ background: var(--orange); border: 2px solid #d36a00;
+      background-image:
+        repeating-linear-gradient(0deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.70) 0 2px, transparent 2px 8px); }
 
     /* 棋子中央尺寸標籤：大／中／小 */
     .size-badge{
@@ -205,6 +199,7 @@
       border-radius:999px; padding: 2px 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,.25);
       user-select:none; pointer-events:none;
+      z-index: 2; /* 文字最高，確保永遠清晰 */
     }
     .piece.size-1 .size-badge{ font-size:12px; padding:2px 6px; }
     .piece.size-2 .size-badge{ font-size:14px; padding:3px 8px; }
@@ -219,12 +214,11 @@
     .bounce{ animation: bounceIn .28s ease-out; }
     .press{ animation: pressDown .28s ease-out; }
 
-    /* ==== SVG Arrow Overlay（縮小尺寸 + 在棋子下層） ==== */
+    /* ==== SVG Arrow Overlay（★置頂＋遮罩挖洞） ==== */
     .arrow-layer{
       position: fixed; left:0; top:0; width:100vw; height:100vh;
       pointer-events:none;
-      z-index: 0; /* ★ 關鍵：在棋子下層，避免遮蓋文字 */
-      mix-blend-mode: multiply;
+      z-index: 9999; /* ★ 置頂，避免被棋盤覆蓋 */
     }
     .arrow-path{
       fill:none; stroke-width:2.5;       /* 更幼，不阻擋字 */
@@ -234,27 +228,23 @@
       animation: dashMove 1.2s linear infinite;
       filter: drop-shadow(0 1px 2px rgba(0,0,0,.15));
     }
-    @keyframes dashMove{
-      to{ stroke-dashoffset: -14; }
-    }
+    @keyframes dashMove{ to{ stroke-dashoffset: -14; } }
   </style>
 </head>
 <body>
-  <!-- SVG arrow overlay：含動態遮罩，避免箭頭覆蓋棋子中央 -->
+  <!-- SVG arrow overlay（含遮罩） -->
   <svg id="arrowLayer" class="arrow-layer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
     <defs>
-      <!-- 縮小箭頭頭部尺寸 -->
       <marker id="headPlace" markerWidth="7" markerHeight="7" refX="5.6" refY="3.5" orient="auto">
         <polygon points="0,0 7,3.5 0,7" fill="var(--arrowPlace)"></polygon>
       </marker>
       <marker id="headMove" markerWidth="7" markerHeight="7" refX="5.6" refY="3.5" orient="auto">
         <polygon points="0,0 7,3.5 0,7" fill="var(--arrowMove)"></polygon>
       </marker>
-
-      <!-- ★ 遮罩：白=顯示，黑=挖洞（不顯示箭頭） -->
+      <!-- 遮罩：白=可見；黑=挖洞（不顯示箭頭） -->
       <mask id="arrowMask">
         <rect x="0" y="0" width="100%" height="100%" fill="white"></rect>
-        <!-- 動態加入黑色圓形（由 JS 生成） -->
+        <!-- 黑色圓形（由 JS 動態注入） -->
       </mask>
     </defs>
     <path id="arrowPath" class="arrow-path" d="" stroke="transparent" marker-end="url(#headPlace)" mask="url(#arrowMask)"></path>
@@ -273,7 +263,7 @@
     </div>
 
     <!-- Left Tray (Blue) -->
-    <div class="tray" id="trayBlue" aria-label="藍方托盤">
+    <div class="tray" id="trayBlue">
       <div class="tray-grid">
         <div class="tray-btn" data-player="blue" data-size="3">
           <div class="mini blue size-3"><span class="mini-badge">大</span></div>
@@ -295,8 +285,8 @@
       <div id="board" class="board" aria-label="3x3 棋盤"></div>
     </div>
 
-    <!-- Right Tray (Orange / AI) -->
-    <div class="tray right" id="trayOrange" aria-label="橙方托盤">
+    <!-- Right Tray (Orange) -->
+    <div class="tray right" id="trayOrange">
       <div class="tray-grid">
         <div class="tray-btn" data-player="orange" data-size="3">
           <div class="mini orange size-3"><span class="mini-badge">大</span></div>
@@ -329,7 +319,7 @@
     let selectedSize = null;
     let gameOver = false;
 
-    // --- Script: 13 固定步驟（你提供）---
+    // --- Script: 13 固定步驟 ---
     const SCRIPT = [
       {actor:'blue',   type:'place', size:3, to:4},
       {actor:'orange', type:'place', size:3, to:8},
@@ -369,7 +359,7 @@
       boardEl.appendChild(c);
     }
 
-    // Tray (玩家可點，但劇本會自動預選大小)
+    // Tray selection (optional；劇本會自動預選)
     document.querySelectorAll(".tray-btn").forEach(btn=>{
       btn.addEventListener("click", ()=>{
         if(gameOver || !scriptedMode) return;
@@ -381,8 +371,7 @@
         selectedSize = size;
         document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("active"));
         btn.classList.add("active");
-        // 重新畫箭頭（來源改為此大小的托盤）
-        showNextHint();
+        showNextHint(); // 重新畫箭頭
       });
     });
 
@@ -404,24 +393,23 @@
       arrowLayer.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`);
     }
     function updateArrowMask(){
-      // 清走舊的黑圓
+      // 清掉舊洞
       [...arrowMask.querySelectorAll('circle[data-hole]')].forEach(n=>n.remove());
-      // 在每個棋格的頂層棋子位置挖一個透明圓洞（避免遮字）
+      // 對每個有棋子的格，挖一個黑色圓洞（mask 中黑=不可見）
       for(let i=0;i<9;i++){
         const cell = boardEl.children[i];
         if(!cell) continue;
         const top = topPiece(i);
         if(!top) continue;
-        const center = getCenter(cell);
-        if(!center) continue;
+        const c = getCenter(cell);
+        if(!c) continue;
         const hole = document.createElementNS('http://www.w3.org/2000/svg','circle');
         hole.setAttribute('data-hole','1');
-        hole.setAttribute('cx', center.x);
-        hole.setAttribute('cy', center.y);
-        // 半徑依棋子大小調整（對應 55/72/95% 直徑）；再縮小少少只保護中文字區域
+        hole.setAttribute('cx', c.x);
+        hole.setAttribute('cy', c.y);
         const rPx = (cell.getBoundingClientRect().width) * (top.size===3 ? 0.20 : top.size===2 ? 0.17 : 0.14);
         hole.setAttribute('r', rPx);
-        hole.setAttribute('fill', 'black'); // mask 中黑色 = 不顯示箭頭
+        hole.setAttribute('fill', 'black');
         arrowMask.appendChild(hole);
       }
     }
@@ -433,7 +421,7 @@
       const f = getCenter(fromEl), t = getCenter(toEl);
       if(!f || !t){ clearArrow(); return; }
 
-      // 輕微弧線，盡量避開中央（小 offset）
+      // 輕微弧線
       const dx = t.x - f.x, dy = t.y - f.y;
       const mx = (f.x + t.x) / 2, my = (f.y + t.y) / 2;
       const nx = -dy, ny = dx;
@@ -457,7 +445,6 @@
     function clearArrow(){
       arrowPath.setAttribute('d','');
       arrowPath.style.opacity = '0';
-      // 保留遮罩內容，下一次 render/showNextHint 會重建
     }
     window.addEventListener('resize', ()=>{
       if(!scriptedMode || gameOver) return;
@@ -468,10 +455,7 @@
     function onCellClick(index){
       if(gameOver) return;
 
-      if(!scriptedMode){
-        handleFreePlay(index);
-        return;
-      }
+      if(!scriptedMode){ handleFreePlay(index); return; }
 
       const mv = SCRIPT[stepIndex];
       if(!mv) return;
@@ -486,14 +470,11 @@
           counts.blue[mv.size]--;
           selectedSize = null; clearTrayActive();
           stepIndex++;
-
           if(checkWin('blue')){ gameOver=true; render(); setTimeout(()=>alert("藍方勝"),10); return; }
           switchTurn();
           clearArrow();
           setTimeout(()=>runAIMoveIfAny(), 600);
-          return;
         }else{
-          // 移動步：單擊目標格
           if(index !== mv.to) return;
           const top = topPiece(mv.from);
           if(!top || top.player!=='blue' || top.size!==mv.size) return;
@@ -501,12 +482,10 @@
 
           movePiece('blue', mv.size, mv.from, mv.to);
           stepIndex++;
-
           if(checkWin('blue')){ gameOver=true; render(); setTimeout(()=>alert("藍方勝"),10); return; }
           switchTurn();
           clearArrow();
           setTimeout(()=>runAIMoveIfAny(), 600);
-          return;
         }
       }
     }
@@ -550,8 +529,7 @@
       }
       if(selectedFrom === null){
         if(!tp || tp.player !== current) return;
-        selectedFrom = index; render();
-        return;
+        selectedFrom = index; render(); return;
       }
       const fromTop = topPiece(selectedFrom);
       if(!fromTop || fromTop.player !== current){ selectedFrom=null; render(); return; }
@@ -600,7 +578,7 @@
         if(co){ co.textContent = `x ${counts.orange[s]}`; co.classList.toggle("zero", counts.orange[s]===0); }
       });
 
-      // 更新遮罩（棋子中心挖洞）
+      // 更新遮罩洞（棋子中心不畫箭頭）
       updateArrowMask();
     }
 
@@ -666,7 +644,7 @@
       showNextHint();
     }
 
-    // 提示 + 箭頭：落子 = 目標格綠光；移動 = 目標格橙光 + 來源藍環；箭頭顯示來源→目標
+    // 提示 + 箭頭
     function showNextHint(keepSelected=false){
       clearHints();
       clearArrow();
@@ -675,7 +653,7 @@
 
       if(mv.actor==='blue'){
         if(mv.type==='place'){
-          if(!keepSelected) { selectedSize = mv.size; }
+          if(!keepSelected) selectedSize = mv.size;
           highlightTray('blue', mv.size);
           const dst = boardEl.children[mv.to]; if(dst) dst.classList.add("hint");
 
@@ -685,6 +663,7 @@
           const trayDot = trayBtn ? trayBtn.querySelector('.mini') : trayBtn;
           drawArrow(trayDot || trayBtn, dst, 'place');
         }else{
+          // 移動：來源藍環、目標橙光，畫來源→目標
           const src = boardEl.children[mv.from]; if(src) src.classList.add("source-cue");
           const dst = boardEl.children[mv.to];   if(dst) dst.classList.add("hint-move");
           drawArrow(src, dst, 'move');
@@ -705,4 +684,3 @@
   </script>
 </body>
 </html>
-``
