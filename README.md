@@ -13,8 +13,9 @@
       --text:#222;
       --cell-size: min(22vmin, 130px);
       --gap: 10px;
-      --hint:#4caf50;
-      --move:#ff6f00;
+      --hint:#4caf50;     /* 放置標籤主色（綠） */
+      --move:#ff6f00;     /* 移動標籤主色（橙） */
+      --labelShadow: 0 4px 12px rgba(0,0,0,.15);
     }
     *{ box-sizing:border-box }
     body{
@@ -136,37 +137,59 @@
     }
     .cell:active{ box-shadow: inset 0 0 0 2px #bdbdbd; }
 
-    /* Place hint（綠 + 文字：放置） */
+    /* 放子提示（綠 + 大字 + 箭頭） */
     .cell.hint{
       box-shadow: inset 0 0 0 3px var(--hint);
       animation: pulseHint 1.2s ease-in-out infinite;
     }
     .cell.hint::after{
-      content: "放置";
-      position:absolute; bottom:8px; right:8px;
-      background:#43a047; color:#fff; font-size:12px; padding:2px 6px; border-radius:999px;
-      box-shadow:0 2px 6px rgba(0,0,0,.15); letter-spacing:.5px; font-weight:800;
+      content: "放置 ➤";
+      position:absolute; bottom:10px; right:10px;
+      background:#43a047; color:#fff;
+      font-size:16px; font-weight:900; letter-spacing:.5px;
+      padding:6px 12px; border-radius:999px;
+      box-shadow: var(--labelShadow);
+    }
+    .cell.hint::before{
+      content:"";
+      position:absolute; bottom:38px; right:80px; /* 微調三角位置 */
+      width:0; height:0;
+      border-left:10px solid #43a047;
+      border-top:10px solid transparent;
+      border-bottom:10px solid transparent;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,.15));
     }
     @keyframes pulseHint{
       0%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 0 rgba(76,175,80,.35); }
-      50%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 8px rgba(76,175,80,.0); }
+      50%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 10px rgba(76,175,80,.0); }
       100%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 0 rgba(76,175,80,.35); }
     }
 
-    /* Move target（橙 + 文字：移動） */
+    /* 移動提示（橙 + 大字 + 箭頭） */
     .cell.hint-move{
       box-shadow: inset 0 0 0 3px var(--move), 0 0 0 6px rgba(255,111,0,.22);
       animation: targetPulse 1.05s ease-in-out infinite;
     }
     .cell.hint-move::after{
-      content: "移動";
-      position:absolute; bottom:8px; right:8px;
-      background:var(--move); color:#fff; font-size:12px; padding:2px 6px; border-radius:999px;
-      box-shadow:0 2px 6px rgba(0,0,0,.15); letter-spacing:.5px; font-weight:800;
+      content: "移動 ➤";
+      position:absolute; bottom:10px; right:10px;
+      background:var(--move); color:#fff;
+      font-size:16px; font-weight:900; letter-spacing:.5px;
+      padding:6px 12px; border-radius:999px;
+      box-shadow: var(--labelShadow);
+    }
+    .cell.hint-move::before{
+      content:"";
+      position:absolute; bottom:38px; right:92px; /* 微調三角位置 */
+      width:0; height:0;
+      border-left:10px solid var(--move);
+      border-top:10px solid transparent;
+      border-bottom:10px solid transparent;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,.15));
     }
     @keyframes targetPulse{ 0%{ transform:scale(1) } 50%{ transform:scale(1.02) } 100%{ transform:scale(1) } }
 
-    /* Move source（藍環） */
+    /* 移動來源（藍環） */
     .cell.source-cue{
       box-shadow: inset 0 0 0 3px #64b5f6, 0 0 0 6px rgba(100,181,246,.18);
     }
@@ -190,7 +213,7 @@
     .blue-piece.size-1{ border-width:2px; } .blue-piece.size-2{ border-width:4px; } .blue-piece.size-3{ border-width:6px; }
     .orange-piece.size-1{ border-width:2px; } .orange-piece.size-2{ border-width:4px; } .orange-piece.size-3{ border-width:6px; }
 
-    /* 中央尺寸標籤：大／中／小 */
+    /* 棋子中央尺寸標籤：大／中／小 */
     .size-badge{
       position:absolute;
       left:50%; top:50%; transform: translate(-50%,-50%);
@@ -315,7 +338,7 @@
       const c = document.createElement("div");
       c.className = "cell";
       c.dataset.index = i;
-      c.addEventListener("click", ()=>onCellClick(i));
+      c.addEventListener("click", () => onCellClick(i));
       boardEl.appendChild(c);
     }
 
@@ -541,7 +564,7 @@
       showNextHint();
     }
 
-    // 提示：落子 = 目標格綠光（文字：放置）；移動 = 目標格橙光（文字：移動） + 來源藍環；自動預選大小
+    // 提示：落子 = 目標格綠光（文字：放置 ➤）；移動 = 目標格橙光（文字：移動 ➤） + 來源藍環；自動預選大小
     function showNextHint(){
       clearHints();
       if(!scriptedMode || gameOver || stepIndex >= SCRIPT.length) return;
