@@ -51,14 +51,17 @@
 @keyframes movingPulse{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.03)}100%{transform:translate(-50%,-50%) scale(1)}}
 .size-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-weight:900;background:rgba(0,0,0,.35);border-radius:999px;padding:2px 8px;box-shadow:0 2px 6px rgba(0,0,0,.25);user-select:none;z-index:3}
 
+/* 勝利：把棋變字（保留在棋盤內） */
+.letter-on::before,.letter-on::after{display:none}
+.letter{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:1000;color:#16a34a;text-shadow:0 2px 0 #fff,0 0 10px rgba(22,163,74,.55),0 0 18px rgba(22,163,74,.35);user-select:none;z-index:4;animation:pop .5s ease forwards;opacity:0}
+.piece.size-1 .letter{font-size:clamp(22px,5vw,36px)}.piece.size-2 .letter{font-size:clamp(26px,6vw,44px)}.piece.size-3 .letter{font-size:clamp(30px,7vw,54px)}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}60%{transform:translate(-50%,-50%) scale(1.15);opacity:1}100%{transform:translate(-50%,-50%) scale(1)}}
+
 .arrow-layer{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:9999}
 .arrow-path{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5 12;opacity:.8;animation:dashMove 1.2s linear infinite;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
 @keyframes dashMove{to{stroke-dashoffset:-14}}
 
-.fx{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:10000}
-.ych{position:absolute;transform:translate(-50%,-50%) scale(.2);opacity:0;font-weight:1000;letter-spacing:.8px;color:#16a34a;text-shadow:0 2px 0 #fff,0 0 10px rgba(22,163,74,.55),0 0 18px rgba(22,163,74,.35);font-size:clamp(36px,6vw,84px);animation:pop .5s ease forwards}
-@keyframes pop{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}60%{transform:translate(-50%,-50%) scale(1.15);opacity:1}100%{transform:translate(-50%,-50%) scale(1)}}
-
+.ghost{position:fixed;left:0;top:0;transform:translate(-50%,-50%);transition:left .65s ease,top .65s ease;pointer-events:none;z-index:9000;will-change:left,top}
 .msg{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:#111;color:#fff;padding:8px 12px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s}
 .msg.show{opacity:.9}
 </style>
@@ -106,7 +109,6 @@
   </div>
 </div>
 
-<div id="fx" class="fx"></div>
 <div id="msg" class="msg"></div>
 
 <script>
@@ -115,7 +117,7 @@ const sizeNames={1:"小",2:"中",3:"大"};
 const winLines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
 const boardEl=document.getElementById("board"),turnDot=document.getElementById("turnDot"),turnText=document.getElementById("turnText");
 const restartBtn=document.getElementById("restartBtn"),swapBtn=document.getElementById("swapBtn"),modeBtn=document.getElementById("modeBtn");
-const arrowPath=document.getElementById('arrowPath'),msgEl=document.getElementById('msg'),fx=document.getElementById('fx');
+const arrowPath=document.getElementById('arrowPath'),msgEl=document.getElementById('msg');
 
 let board,counts,current,selectedSize,gameOver;
 let teachingMode=true,stepIndex=0,movingFromIndex=null,pvpSelectedFrom=null;
@@ -137,7 +139,7 @@ const SCRIPT=[
 ];
 
 function makeCells(){ if(boardEl.children.length) return; for(let i=0;i<9;i++){const c=document.createElement("div"); c.className="cell"; c.dataset.index=i; c.addEventListener("click",()=>onCellClick(i)); boardEl.appendChild(c);} }
-function resetCommon(){ board=Array.from({length:9},()=>[]); counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}}; selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null; current="blue"; render(); clearHints(); clearArrow(); clearTrayGlow(); clearFX(); }
+function resetCommon(){ board=Array.from({length:9},()=>[]); counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}}; selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null; current="blue"; render(); clearHints(); clearArrow(); clearTrayGlow(); }
 function resetTeaching(){ teachingMode=true; stepIndex=0; modeBtn.textContent="退出教學模式"; restartBtn.style.display="none"; swapBtn.style.display="none"; resetCommon(); showNextHint(); }
 function resetPVP(start="blue"){ teachingMode=false; modeBtn.textContent="開始教學模式"; restartBtn.style.display=""; swapBtn.style.display=""; resetCommon(); current=start; render(); hint("PVP 開始，先手："+(current==="blue"?"綠":"橙")); }
 
@@ -169,7 +171,8 @@ function offsetEndpoints(aEl,bEl){ const A=getCenter(aEl),B=getCenter(bEl); if(!
 function drawArrow(aEl,bEl,kind){ if(!aEl||!bEl){ clearArrow(); return; } setSvg(); const p=offsetEndpoints(aEl,bEl); if(!p){ clearArrow(); return; } const bend=Math.min(28,p.len*0.10),cx=p.mid.x+p.nx*bend,cy=p.mid.y+p.ny*bend; arrowPath.setAttribute('d',`M ${p.f.x},${p.f.y} Q ${cx},${cy} ${p.t.x},${p.t.y}`); arrowPath.setAttribute('stroke',getComputedStyle(document.documentElement).getPropertyValue(kind==='place'?'--arrowPlace':'--arrowMove')||'#43a047'); arrowPath.setAttribute('marker-end',`url(#${kind==='place'?'headPlace':'headMove'})`); arrowPath.style.opacity='1'; }
 function clearArrow(){ arrowPath.setAttribute('d',''); arrowPath.style.opacity='0'; }
 
-function ghostMove(from,toEl,player,size,dur=550){
+/* 慢速移動：用幽靈棋子，由來源(托盤/原格)飛到目標格 */
+function ghostMove(from,toEl,player,size,dur=650){
   return new Promise(res=>{
     const A=(from&&from.nodeType===1)?getCenter(from):from, B=getCenter(toEl);
     if(!A||!B){ res(); return; }
@@ -179,6 +182,7 @@ function ghostMove(from,toEl,player,size,dur=550){
     g.style.left=A.x+"px"; g.style.top=A.y+"px"; g.style.width=wh+"px"; g.style.height=wh+"px";
     const badge=document.createElement("span"); badge.className="size-badge"; badge.textContent=sizeNames[size]; g.appendChild(badge);
     g.style.transitionDuration=dur+"ms"; document.body.appendChild(g);
+    g.getBoundingClientRect(); /* reflow，確保過渡生效 */
     requestAnimationFrame(()=>{ g.style.left=B.x+"px"; g.style.top=B.y+"px"; });
     setTimeout(()=>{ g.remove(); res(); }, dur+40);
   });
@@ -188,18 +192,35 @@ function topPiece(i){const s=board[i];return s.length?s[s.length-1]:null;}
 function canPlace(player,size,i){const s=board[i],t=s.length?s[s.length-1]:null;return !t||size>t.size;}
 function canMove(player,size,from,to){if(from===to)return false;const ft=topPiece(from);if(!ft||ft.player!==player||ft.size!==size)return false;const tt=topPiece(to);return !tt||size>tt.size;}
 function checkWin(p){return winLines.some(line=>line.every(i=>{const t=topPiece(i);return t&&t.player===p;}));}
-function getWinningLine(p){for(const line of winLines){if(line.every(i=>{const t=topPiece(i);return t&&t.player===p;})) return line;}return null;}
+function getWinningLine(p){for(const line of winLines){if(line.every(i=>{const t=topPiece(i);return t&&t.player===p;})) return line}return null}
 
 function render(){
   turnDot.className="dot "+(current==="blue"?"blue":"orange");
   turnText.textContent="輪到："+(current==="blue"?"綠":"橙");
-  for(let i=0;i<9;i++){const cell=boardEl.children[i];cell.innerHTML="";const t=topPiece(i);if(t){const p=document.createElement("div");p.className=`piece ${t.player==='blue'?'blue-piece':'orange-piece'} size-${t.size}`;if(i===movingFromIndex)p.classList.add('moving-piece');const b=document.createElement("span");b.className="size-badge";b.textContent=sizeNames[t.size];p.appendChild(b);cell.appendChild(p);}}
-  [1,2,3].forEach(s=>{const cb=document.getElementById(`count-blue-${s}`),co=document.getElementById(`count-orange-${s}`);if(cb){cb.textContent=`x ${counts.blue[s]}`;cb.classList.toggle("zero",counts.blue[s]===0)}if(co){co.textContent=`x ${counts.orange[s]}`;co.classList.toggle("zero",counts.orange[s]===0)}})
+  for(let i=0;i<9;i++){
+    const cell=boardEl.children[i]; cell.innerHTML="";
+    const t=topPiece(i);
+    if(t){
+      const p=document.createElement("div");
+      p.className=`piece ${t.player==='blue'?'blue-piece':'orange-piece'} size-${t.size}${t.letter?' letter-on':''}`;
+      if(i===movingFromIndex)p.classList.add('moving-piece');
+      if(t.letter){
+        const L=document.createElement("span"); L.className="letter"; L.textContent=t.letter; p.appendChild(L);
+      }else{
+        const b=document.createElement("span"); b.className="size-badge"; b.textContent=sizeNames[t.size]; p.appendChild(b);
+      }
+      cell.appendChild(p);
+    }
+  }
+  [1,2,3].forEach(s=>{
+    const cb=document.getElementById(`count-blue-${s}`),co=document.getElementById(`count-orange-${s}`);
+    if(cb){cb.textContent=`x ${counts.blue[s]}`;cb.classList.toggle("zero",counts.blue[s]===0)}
+    if(co){co.textContent=`x ${counts.orange[s]}`;co.classList.toggle("zero",counts.orange[s]===0)}
+  })
 }
 
 function clearHints(){Array.from(boardEl.children).forEach(c=>c.classList.remove("hint","hint-move","source-cue"))}
 function clearTrayGlow(){document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("glow-green","active"))}
-function clearFX(){fx.innerHTML="";}
 function highlightTray(player,size){clearTrayGlow();document.querySelectorAll(".tray-btn").forEach(b=>{if(b.dataset.player===player&&Number(b.dataset.size)===size)b.classList.add("glow-green","active")})}
 function switchTurn(){current=(current==="blue")?"orange":"blue";render()}
 
@@ -234,10 +255,10 @@ function onCellClick(index){
       const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn;
       const dst=boardEl.children[mv.to];
       lock();
-      ghostMove(dot,dst,'blue',mv.size,550).then(()=>{
+      ghostMove(dot,dst,'blue',mv.size,600).then(()=>{
         board[mv.to].push({player:'blue',size:mv.size});
         counts.blue[mv.size]--; stepIndex++; clearArrow(); clearTrayGlow(); clearHints();
-        if(checkWin('blue')){ playerWinFX(); unlock(); return; }
+        if(checkWin('blue')){ playerWinToLetters(); unlock(); return; }
         current='orange'; render(); setTimeout(runAIMoveIfAny,450);
       });
     }else{
@@ -245,11 +266,11 @@ function onCellClick(index){
       if(!canMove('blue',mv.size,mv.from,mv.to)){hint("移動不合法");return}
       const src=boardEl.children[mv.from],dst=boardEl.children[mv.to],pos=getCenter(src);
       lock();
-      board[mv.from].pop(); render();
-      ghostMove({x:pos.x,y:pos.y},dst,'blue',mv.size,600).then(()=>{
+      board[mv.from].pop(); render(); /* 原格即時消失 */
+      ghostMove({x:pos.x,y:pos.y},dst,'blue',mv.size,650).then(()=>{
         board[mv.to].push({player:'blue',size:mv.size});
         stepIndex++; movingFromIndex=null; clearArrow(); clearHints();
-        if(checkWin('blue')){ playerWinFX(); unlock(); return; }
+        if(checkWin('blue')){ playerWinToLetters(); unlock(); return; }
         current='orange'; render(); setTimeout(runAIMoveIfAny,450);
       });
     }
@@ -266,7 +287,7 @@ function runAIMoveIfAny(){
     const trayBtn=[...document.querySelectorAll('#trayOrange .tray-btn')].find(b=>Number(b.dataset.size)===mv.size);
     const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn;
     const dst=boardEl.children[mv.to];
-    ghostMove(dot,dst,'orange',mv.size,550).then(()=>{
+    ghostMove(dot,dst,'orange',mv.size,600).then(()=>{
       board[mv.to].push({player:'orange',size:mv.size});
       counts.orange[mv.size]--; stepIndex++; clearArrow(); clearTrayGlow(); clearHints();
       if(checkWin('orange')){ gameOver=true; render(); alert("橙方勝"); unlock(); return; }
@@ -275,7 +296,7 @@ function runAIMoveIfAny(){
   }else{
     const src=boardEl.children[mv.from],dst=boardEl.children[mv.to],pos=getCenter(src);
     board[mv.from].pop(); render();
-    ghostMove({x:pos.x,y:pos.y},dst,'orange',mv.size,600).then(()=>{
+    ghostMove({x:pos.x,y:pos.y},dst,'orange',mv.size,650).then(()=>{
       board[mv.to].push({player:'orange',size:mv.size});
       stepIndex++; movingFromIndex=null; clearArrow(); clearHints();
       if(checkWin('orange')){ gameOver=true; render(); alert("橙方勝"); unlock(); return; }
@@ -284,19 +305,18 @@ function runAIMoveIfAny(){
   }
 }
 
-function playerWinFX(){
-  gameOver=true; clearArrow(); clearHints(); clearTrayGlow(); render(); clearFX();
-  const line=getWinningLine('blue'); if(!line) return;
-  const pts=line.map(i=>({i, ...getCenter(boardEl.children[i])}));
+/* 把勝利線上 3 枚棋直接變成 Y/C/H（留在棋盤內） */
+function playerWinToLetters(){
+  gameOver=true; clearArrow(); clearHints(); clearTrayGlow();
+  const line=getWinningLine('blue'); if(!line){ render(); return; }
+  const pts=line.map(i=>({i,...getCenter(boardEl.children[i])}));
   pts.sort((a,b)=>a.x!==b.x?(a.x-b.x):(a.y-b.y));
   const letters=["Y","C","H"];
   pts.forEach((p,idx)=>{
-    const s=document.createElement('div');
-    s.className='ych'; s.textContent=letters[idx];
-    s.style.left=p.x+'px'; s.style.top=p.y+'px';
-    s.style.animationDelay=(idx*180)+'ms';
-    fx.appendChild(s);
+    const top=topPiece(p.i);
+    if(top){ top.letter=letters[idx]; }
   });
+  render();
 }
 
 function handlePVP(index){
@@ -332,3 +352,4 @@ function hint(t){ msgEl.textContent=t; msgEl.classList.add('show'); clearTimeout
 </script>
 </body>
 </html>
+
