@@ -55,7 +55,7 @@
       font-size: clamp(22px, 5vw, 40px);
       text-shadow: 0 2px 10px rgba(30,144,255,.15);
     }
-    .header-bar{ display:flex; align-items:center; gap:10px; }
+    .header-bar{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
     .dot{ width:14px; height:14px; border-radius:50%; box-shadow: inset 0 0 0 2px rgba(255,255,255,.6); }
     .dot.blue{
       background: var(--blue);
@@ -140,13 +140,13 @@
     }
     .cell:active{ box-shadow: inset 0 0 0 2px #bdbdbd; }
 
-    /* 放子提示（綠 + 大字 + 箭頭角標） */
+    /* 放子提示（綠 + 大字） */
     .cell.hint{
       box-shadow: inset 0 0 0 3px var(--hint);
       animation: pulseHint 1.2s ease-in-out infinite;
     }
     .cell.hint::after{
-      content: "放置 ➤";
+      content: "放置";
       position:absolute; bottom:8px; right:8px;
       background:#43a047; color:#fff;
       font-size:16px; font-weight:900; letter-spacing:.5px;
@@ -159,13 +159,13 @@
       100%{ box-shadow: inset 0 0 0 3px var(--hint), 0 0 0 0 rgba(76,175,80,.35); }
     }
 
-    /* 移動提示（橙 + 大字 + 箭頭角標） */
+    /* 移動提示（橙 + 大字） */
     .cell.hint-move{
-      box-shadow: inset 0 0 0 3px var(--move), 0 0 0 6px rgba(255,111,0,.22);
+      box-shadow: inset 0 0 0 3px var(--move), 0 0 0 6px rgba(255,111,0,.18);
       animation: targetPulse 1.05s ease-in-out infinite;
     }
     .cell.hint-move::after{
-      content: "移動 ➤";
+      content: "移動";
       position:absolute; bottom:8px; right:8px;
       background:var(--move); color:#fff;
       font-size:16px; font-weight:900; letter-spacing:.5px;
@@ -176,7 +176,7 @@
 
     /* 移動來源（藍環） */
     .cell.source-cue{
-      box-shadow: inset 0 0 0 3px #64b5f6, 0 0 0 6px rgba(100,181,246,.18);
+      box-shadow: inset 0 0 0 3px #64b5f6, 0 0 0 6px rgba(100,181,246,.12);
     }
 
     /* 棋子 */
@@ -219,32 +219,34 @@
     .bounce{ animation: bounceIn .28s ease-out; }
     .press{ animation: pressDown .28s ease-out; }
 
-    /* ==== SVG Arrow Overlay ==== */
+    /* ==== SVG Arrow Overlay（縮小尺寸） ==== */
     .arrow-layer{
       position: fixed; left:0; top:0; width:100vw; height:100vh;
       pointer-events:none; z-index: 10;
     }
     .arrow-path{
-      fill:none; stroke-width:4.5;
+      fill:none; stroke-width:2.5;   /* 更幼，不阻擋字 */
       stroke-linecap:round; stroke-linejoin:round;
-      stroke-dasharray: 6 10;
+      stroke-dasharray: 5 12;
+      opacity:.8;                    /* 略透明 */
       animation: dashMove 1.2s linear infinite;
-      filter: drop-shadow(0 2px 3px rgba(0,0,0,.15));
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,.15));
     }
     @keyframes dashMove{
-      to{ stroke-dashoffset: -16; }
+      to{ stroke-dashoffset: -14; }
     }
   </style>
 </head>
 <body>
   <!-- SVG arrow overlay -->
-  <svg id="arrowLayer" class="arrow-layer" viewBox="0 0 100 100" preserveAspectRatio="none">
+  <svg id="arrowLayer" class="arrow-layer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
     <defs>
-      <marker id="headPlace" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-        <polygon points="0,0 10,5 0,10" fill="var(--arrowPlace)"></polygon>
+      <!-- 縮小箭頭頭部尺寸 -->
+      <marker id="headPlace" markerWidth="7" markerHeight="7" refX="5.6" refY="3.5" orient="auto">
+        <polygon points="0,0 7,3.5 0,7" fill="var(--arrowPlace)"></polygon>
       </marker>
-      <marker id="headMove" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-        <polygon points="0,0 10,5 0,10" fill="var(--arrowMove)"></polygon>
+      <marker id="headMove" markerWidth="7" markerHeight="7" refX="5.6" refY="3.5" orient="auto">
+        <polygon points="0,0 7,3.5 0,7" fill="var(--arrowMove)"></polygon>
       </marker>
     </defs>
     <path id="arrowPath" class="arrow-path" d="" stroke="transparent" marker-end="url(#headPlace)"></path>
@@ -370,8 +372,8 @@
         selectedSize = size;
         document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("active"));
         btn.classList.add("active");
-        // 點選托盤時更新箭頭來源為此按鈕
-        showNextHint(); // 重新計算箭頭
+        // 重新計箭頭來源
+        showNextHint();
       });
     });
 
@@ -398,12 +400,12 @@
       const f = getCenter(fromEl), t = getCenter(toEl);
       if(!f || !t){ clearArrow(); return; }
 
-      // 直線或輕微弧線（使用二次貝茲曲線令箭頭更優雅）
+      // 弧線（細緻避開棋子中心）：弧度更小，減少穿過中央標籤機率
       const dx = t.x - f.x, dy = t.y - f.y;
       const mx = (f.x + t.x) / 2, my = (f.y + t.y) / 2;
       const nx = -dy, ny = dx;
       const len = Math.sqrt(dx*dx + dy*dy) || 1;
-      const offset = Math.min(40, len * 0.12); // 弧度偏移
+      const offset = Math.min(28, len * 0.10); // 弧度比之前更小
       const cx = mx + (nx/len) * offset;
       const cy = my + (ny/len) * offset;
 
@@ -423,7 +425,7 @@
       arrowPath.setAttribute('d','');
       arrowPath.style.opacity = '0';
     }
-    window.addEventListener('resize', ()=>{ // 窗口變動時重繪箭頭
+    window.addEventListener('resize', ()=>{
       if(!scriptedMode || gameOver) return;
       showNextHint(true);
     }, {passive:true});
@@ -636,7 +638,6 @@
 
       if(mv.actor==='blue'){
         if(mv.type==='place'){
-          // 預選大小（如果未手動點托盤）
           if(!keepSelected) { selectedSize = mv.size; }
           highlightTray('blue', mv.size);
           const dst = boardEl.children[mv.to]; if(dst) dst.classList.add("hint");
@@ -647,7 +648,6 @@
           const trayDot = trayBtn ? trayBtn.querySelector('.mini') : trayBtn;
           drawArrow(trayDot || trayBtn, dst, 'place');
         }else{
-          // 移動：來源藍環、目標橙光；箭頭：來源→目標
           const src = boardEl.children[mv.from]; if(src) src.classList.add("source-cue");
           const dst = boardEl.children[mv.to];   if(dst) dst.classList.add("hint-move");
           drawArrow(src, dst, 'move');
@@ -668,4 +668,3 @@
   </script>
 </body>
 </html>
-``
