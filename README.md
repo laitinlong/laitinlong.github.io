@@ -1,5 +1,5 @@
 
-<!doctype html>
+
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
@@ -15,7 +15,6 @@
 /* 移除標題旁任何注入圖示/錨點 */
 .title-line2::before,.title-line2::after{content:none!important;background:none!important;box-shadow:none!important}
 .title-line2 a,.title-line2 .anchor,.title-line2 [class*="icon"],.title-line2 svg{display:none!important}
-
 .header-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .dot{width:14px;height:14px;border-radius:50%}.dot.blue{background:var(--green)}.dot.orange{background:var(--orange)}
 .turn-text{font-weight:800;font-size:14px}
@@ -46,7 +45,7 @@
 @keyframes targetPulse{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
 .cell.source-cue{box-shadow:inset 0 0 0 3px var(--hint),0 0 0 6px rgba(67,160,71,.18)}
 .piece{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,.18),inset 0 0 0 3px rgba(255,255,255,.65);transition:transform .18s ease,filter .18s ease,box-shadow .18s ease,opacity .18s ease}
-.size-1{width:55%;height:55%}.size-2{width:72%;height:72%}.size-3{width:95%;height:95%}
+.size-1{width:55%;height:55%}.size-2{width:72%;height:72%}.size-3{width:95%}
 .blue-piece{background:var(--green);border:2px solid var(--green-dark)}
 .orange-piece{background:var(--orange);border:2px solid #d36a00}
 .blue-piece::before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:72%;height:72%;border-radius:50%;box-shadow:0 0 0 5px rgba(255,255,255,.95),inset 0 0 0 7px var(--green-dark)}
@@ -58,24 +57,10 @@
 /* === 強化勝利 5 秒特效 === */
 .win-spotlight .board .piece{opacity:.28;filter:grayscale(.1) saturate(.8)}
 .win-spotlight .board .win-pulse{opacity:1;filter:none}
-.win-pulse{
-  box-shadow:0 0 0 6px rgba(67,160,71,.95),0 0 28px 8px rgba(67,160,71,.55),inset 0 0 0 3px rgba(255,255,255,.9);
-  animation:winGlow .85s ease-in-out infinite;
-}
-.piece.win-pulse::after{
-  content:"";position:absolute;inset:-8%;border-radius:50%;
-  box-shadow:0 0 0 0 rgba(67,160,71,.75);
-  animation:winRing 1.1s ease-out infinite;
-}
-@keyframes winGlow{
-  0%{transform:translate(-50%,-50%) scale(1);filter:saturate(1.4) brightness(1.08)}
-  50%{transform:translate(-50%,-50%) scale(1.12);filter:saturate(1.6) brightness(1.18)}
-  100%{transform:translate(-50%,-50%) scale(1);filter:saturate(1.4) brightness(1.08)}
-}
-@keyframes winRing{
-  0%{box-shadow:0 0 0 0 rgba(67,160,71,.75)}
-  100%{box-shadow:0 0 0 22px rgba(67,160,71,0)}
-}
+.win-pulse{box-shadow:0 0 0 6px rgba(67,160,71,.95),0 0 28px 8px rgba(67,160,71,.55),inset 0 0 0 3px rgba(255,255,255,.9);animation:winGlow .85s ease-in-out infinite}
+.piece.win-pulse::after{content:"";position:absolute;inset:-8%;border-radius:50%;box-shadow:0 0 0 0 rgba(67,160,71,.75);animation:winRing 1.1s ease-out infinite}
+@keyframes winGlow{0%{transform:translate(-50%,-50%) scale(1);filter:saturate(1.4) brightness(1.08)}50%{transform:translate(-50%,-50%) scale(1.12);filter:saturate(1.6) brightness(1.18)}100%{transform:translate(-50%,-50%) scale(1);filter:saturate(1.4) brightness(1.08)}}
+@keyframes winRing{0%{box-shadow:0 0 0 0 rgba(67,160,71,.75)}100%{box-shadow:0 0 0 22px rgba(67,160,71,0)}}
 /* === /強化勝利特效 === */
 
 .size-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-weight:900;background:rgba(0,0,0,.35);border-radius:999px;padding:2px 8px;box-shadow:0 2px 6px rgba(0,0,0,.25);user-select:none;z-index:3}
@@ -136,6 +121,7 @@ const sizeNames={1:"小",2:"中",3:"大"},winLines=[[0,1,2],[3,4,5],[6,7,8],[0,3
 const boardEl=document.getElementById("board"),turnDot=document.getElementById("turnDot"),turnText=document.getElementById("turnText");
 const restartBtn=document.getElementById("restartBtn"),swapBtn=document.getElementById("swapBtn"),modeBtn=document.getElementById("modeBtn");
 const arrowLayer=document.getElementById('arrowLayer'),arrowPath=document.getElementById('arrowPath'),msgEl=document.getElementById('msg');
+const trayBlue=document.getElementById('trayBlue'),trayOrange=document.getElementById('trayOrange');
 
 let board,counts,current,selectedSize,gameOver;
 let teachingMode=true,stepIndex=0,movingFromIndex=null,pvpSelectedFrom=null;
@@ -170,8 +156,21 @@ if(!boardEl.children.length){
 
 function resetCommon(){ board=Array.from({length:9},()=>[]); counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}}; selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null; currentArrow=null; clearArrow(); winPulse.clear(); winLineIdx=null; render(); clearHints(); clearTrayGlow(); }
 function clearWinLettersDOM(){ Array.from(boardEl.children).forEach(c=>{ const ov=c.querySelector('.cell-overlay'); if(ov) ov.innerHTML=""; }); winLetters={}; }
-function resetTeaching(){ clearWinLettersDOM(); teachingMode=true; stepIndex=0; modeBtn.textContent="退出教學模式"; restartBtn.style.display="none"; swapBtn.style.display="none"; resetCommon(); current="blue"; showNextHint(); }
-function resetPVP(start="blue"){ clearWinLettersDOM(); teachingMode=false; modeBtn.textContent="開始教學模式"; restartBtn.style.display=""; swapBtn.style.display=""; resetCommon(); current=start; render(); hint("PVP 開始，先手："+(current==="blue"?"綠":"橙")); }
+
+function resetTeaching(){
+  // 托盤回原位（顯示）
+  trayBlue.style.display=''; trayOrange.style.display='';
+  clearWinLettersDOM(); teachingMode=true; stepIndex=0;
+  modeBtn.textContent="退出教學模式"; restartBtn.style.display="none"; swapBtn.style.display="none";
+  resetCommon(); current="blue"; showNextHint();
+}
+function resetPVP(start="blue"){
+  // 托盤回原位（顯示）
+  trayBlue.style.display=''; trayOrange.style.display='';
+  clearWinLettersDOM(); teachingMode=false;
+  modeBtn.textContent="開始教學模式"; restartBtn.style.display=""; swapBtn.style.display="";
+  resetCommon(); current=start; render(); hint("PVP 開始，先手："+(current==="blue"?"綠":"橙"));
+}
 
 restartBtn.addEventListener("click",()=>{ if(!teachingMode) resetPVP("blue"); });
 swapBtn.addEventListener("click",()=>{ if(!teachingMode){ current=(current==="blue")?"orange":"blue"; resetPVP(current); hint("已換邊起手："+(current==="blue"?"綠":"橙")); }});
@@ -363,7 +362,7 @@ function toYCHAndBanners(){
   }
   render();
 
-  /* 轉 Y C H */
+  /* 轉 Y C H（保留棋盤演出，但不出左右文字） */
   const pts=winLineIdx.map(i=>({i,...getCenter(boardEl.children[i])}));
   pts.sort((a,b)=>a.x!==b.x?(a.x-b.x):(a.y-b.y));
   const letters=["Y","C","H"];
@@ -375,9 +374,8 @@ function toYCHAndBanners(){
     s.style.animationDelay=(idx*180)+'ms'; overlay.appendChild(s);
     setTimeout(()=>{ overlay.innerHTML=""; const st=document.createElement('span'); st.className='win-letter-still'; st.textContent=letters[idx]; overlay.appendChild(st); }, 700+idx*180);
   });
-  /* 保持兩側不顯示任何文字，不再插入 banners */
-  document.getElementById('trayBlue').style.display='none';
-  document.getElementById('trayOrange').style.display='none';
+  trayBlue.style.display='none';
+  trayOrange.style.display='none';
 }
 function handlePVP(index){
   if(gameOver) return;
@@ -425,4 +423,4 @@ layoutArrowLayer(); resetTeaching();
 </script>
 </body>
 </html>
-``
+
