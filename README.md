@@ -12,6 +12,10 @@
 .header{grid-area:header;display:flex;flex-direction:column;align-items:center;gap:8px}
 .title-line1{margin:0;font-weight:900;letter-spacing:.8px;color:#0f5132;font-size:clamp(28px,6.4vw,64px)}
 .title-line2{margin:0;font-weight:900;letter-spacing:.6px;color:var(--green);font-size:clamp(24px,5.6vw,56px)}
+/* 移除標題旁任何注入圖示/錨點 */
+.title-line2::before,.title-line2::after{content:none!important;background:none!important;box-shadow:none!important}
+.title-line2 a,.title-line2 .anchor,.title-line2 [class*="icon"],.title-line2 svg{display:none!important}
+
 .header-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .dot{width:14px;height:14px;border-radius:50%}.dot.blue{background:var(--green)}.dot.orange{background:var(--orange)}
 .turn-text{font-weight:800;font-size:14px}
@@ -22,7 +26,7 @@
 .tray-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .tray-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:8px;cursor:pointer;border-radius:12px;border:1px solid #ddd;background:#fafafa;transition:.15s;min-height:92px;text-align:center}
 .tray-btn:hover{background:#f5f5f5;transform:translateY(-1px)}
-.tray-btn.active{border-color:#888;box-shadow:0 4px 12px rgba(0,0,0,.08);背景:#fff}
+.tray-btn.active{border-color:#888;box-shadow:0 4px 12px rgba(0,0,0,.08);background:#fff}
 .mini{position:relative;border-radius:50%;width:40px;height:40px;box-shadow:0 3px 8px rgba(0,0,0,.15),inset 0 0 0 3px rgba(255,255,255,.65)}
 .mini.size-1{width:28px;height:28px}.mini.size-2{width:34px;height:34px}.mini.size-3{width:40px;height:40px}
 .mini.blue{background:var(--green);border:2px solid var(--green-dark)}.mini.orange{background:var(--orange);border:2px solid #d36a00}
@@ -51,28 +55,13 @@
 .moving-piece{box-shadow:0 0 0 4px rgba(67,160,71,.85),0 0 14px 2px rgba(67,160,71,.45),inset 0 0 0 3px rgba(255,255,255,.7);animation:movingPulse 1.1s ease-in-out infinite}
 @keyframes movingPulse{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.03)}100%{transform:translate(-50%,-50%) scale(1)}}
 
-/* === 強化勝利 5 秒特效 === */
+/* 強化勝利 5 秒特效 */
 .win-spotlight .board .piece{opacity:.28;filter:grayscale(.1) saturate(.8)}
 .win-spotlight .board .win-pulse{opacity:1;filter:none}
-.win-pulse{
-  box-shadow:0 0 0 6px rgba(67,160,71,.95),0 0 28px 8px rgba(67,160,71,.55),inset 0 0 0 3px rgba(255,255,255,.9);
-  animation:winGlow .85s ease-in-out infinite;
-}
-.piece.win-pulse::after{
-  content:"";position:absolute;inset:-8%;border-radius:50%;
-  box-shadow:0 0 0 0 rgba(67,160,71,.75);
-  animation:winRing 1.1s ease-out infinite;
-}
-@keyframes winGlow{
-  0%{transform:translate(-50%,-50%) scale(1);filter:saturate(1.4) brightness(1.08)}
-  50%{transform:translate(-50%,-50%) scale(1.12);filter:saturate(1.6) brightness(1.18)}
-  100%{transform:translate(-50%,-50%) scale(1);filter:saturate(1.4) brightness(1.08)}
-}
-@keyframes winRing{
-  0%{box-shadow:0 0 0 0 rgba(67,160,71,.75)}
-  100%{box-shadow:0 0 0 22px rgba(67,160,71,0)}
-}
-/* === /強化勝利特效 === */
+.win-pulse{box-shadow:0 0 0 6px rgba(67,160,71,.95),0 0 28px 8px rgba(67,160,71,.55),inset 0 0 0 3px rgba(255,255,255,.9);animation:winGlow .85s ease-in-out infinite}
+.piece.win-pulse::after{content:"";position:absolute;inset:-8%;border-radius:50%;box-shadow:0 0 0 0 rgba(67,160,71,.75);animation:winRing 1.1s ease-out infinite}
+@keyframes winGlow{0%{transform:translate(-50%,-50%) scale(1);filter:saturate(1.4) brightness(1.08)}50%{transform:translate(-50%,-50%) scale(1.12);filter:saturate(1.6) brightness(1.18)}100%{transform:translate(-50%,-50%) scale(1);filter:saturate(1.4) brightness(1.08)}}
+@keyframes winRing{0%{box-shadow:0 0 0 0 rgba(67,160,71,.75)}100%{box-shadow:0 0 0 22px rgba(67,160,71,0)}}
 
 .size-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-weight:900;background:rgba(0,0,0,.35);border-radius:999px;padding:2px 8px;box-shadow:0 2px 6px rgba(0,0,0,.25);user-select:none;z-index:3}
 .win-letter,.win-letter-still{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:1000;color:#16a34a;text-shadow:0 2px 0 #fff,0 0 10px rgba(22,163,74,.55),0 0 18px rgba(22,163,74,.35);font-size:clamp(30px,7vw,56px);pointer-events:none;z-index:30}
@@ -355,15 +344,15 @@ function startWinSequence(){
 function toYCHAndBanners(){
   document.body.classList.remove('win-spotlight');
 
-  /* 5秒後：清走非勝利線頂層橙子 + 其下方一枚綠子（如存在） */
+  /* 5秒後：清走非勝利線頂層橙 + 其下方一枚綠（如存在） */
   const winSet=new Set(winLineIdx);
   for(let i=0;i<9;i++){
     if(!winSet.has(i) && board[i].length){
       const t=topPiece(i);
       if(t && t.player==='orange'){
-        board[i].pop(); // 橙
+        board[i].pop();
         const t2=topPiece(i);
-        if(t2 && t2.player==='blue') board[i].pop(); // 綠（被蓋住嗰隻）
+        if(t2 && t2.player==='blue') board[i].pop();
       }
     }
   }
