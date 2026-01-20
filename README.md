@@ -43,13 +43,37 @@
 .cell.source-cue{box-shadow:inset 0 0 0 3px var(--hint),0 0 0 6px rgba(67,160,71,.18)}
 .piece{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,.18),inset 0 0 0 3px rgba(255,255,255,.65);transition:transform .18s ease,filter .18s ease,box-shadow .18s ease,opacity .18s ease}
 .size-1{width:55%;height:55%}.size-2{width:72%;height:72%}.size-3{width:95%;height:95%}
-.blue-piece{background:var(--green);border:2px solid var(--green-dark)}.orange-piece{background:var(--orange);border:2px solid #d36a00}
+.blue-piece{background:var(--green);border:2px solid var(--green-dark)}
+.orange-piece{background:var(--orange);border:2px solid #d36a00}
 .blue-piece::before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:72%;height:72%;border-radius:50%;box-shadow:0 0 0 5px rgba(255,255,255,.95),inset 0 0 0 7px var(--green-dark)}
 .orange-piece::before,.orange-piece::after{content:"";position:absolute;left:50%;top:50%;width:76%;height:12%;background:#d36a00;border-radius:8px;transform-origin:center;box-shadow:0 0 0 4px rgba(255,255,255,.95),0 1px 2px rgba(0,0,0,.2)}
 .orange-piece::before{transform:translate(-50%,-50%) rotate(45deg)}.orange-piece::after{transform:translate(-50%,-50%) rotate(-45deg)}
 .moving-piece{box-shadow:0 0 0 4px rgba(67,160,71,.85),0 0 14px 2px rgba(67,160,71,.45),inset 0 0 0 3px rgba(255,255,255,.7);animation:movingPulse 1.1s ease-in-out infinite}
 @keyframes movingPulse{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.03)}100%{transform:translate(-50%,-50%) scale(1)}}
-.win-pulse{box-shadow:0 0 0 4px rgba(67,160,71,.85),0 0 14px 2px rgba(67,160,71,.45),inset 0 0 0 3px rgba(255,255,255,.7);animation:movingPulse 1.1s ease-in-out infinite}
+
+/* === 強化勝利 5 秒特效 === */
+.win-spotlight .board .piece{opacity:.28;filter:grayscale(.1) saturate(.8)}
+.win-spotlight .board .win-pulse{opacity:1;filter:none}
+.win-pulse{
+  box-shadow:0 0 0 6px rgba(67,160,71,.95),0 0 28px 8px rgba(67,160,71,.55),inset 0 0 0 3px rgba(255,255,255,.9);
+  animation:winGlow .85s ease-in-out infinite;
+}
+.piece.win-pulse::after{
+  content:"";position:absolute;inset:-8%;border-radius:50%;
+  box-shadow:0 0 0 0 rgba(67,160,71,.75);
+  animation:winRing 1.1s ease-out infinite;
+}
+@keyframes winGlow{
+  0%{transform:translate(-50%,-50%) scale(1);filter:saturate(1.4) brightness(1.08)}
+  50%{transform:translate(-50%,-50%) scale(1.12);filter:saturate(1.6) brightness(1.18)}
+  100%{transform:translate(-50%,-50%) scale(1);filter:saturate(1.4) brightness(1.08)}
+}
+@keyframes winRing{
+  0%{box-shadow:0 0 0 0 rgba(67,160,71,.75)}
+  100%{box-shadow:0 0 0 22px rgba(67,160,71,0)}
+}
+/* === /強化勝利特效 === */
+
 .size-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-weight:900;background:rgba(0,0,0,.35);border-radius:999px;padding:2px 8px;box-shadow:0 2px 6px rgba(0,0,0,.25);user-select:none;z-index:3}
 .win-letter,.win-letter-still{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:1000;color:#16a34a;text-shadow:0 2px 0 #fff,0 0 10px rgba(22,163,74,.55),0 0 18px rgba(22,163,74,.35);font-size:clamp(30px,7vw,56px);pointer-events:none;z-index:30}
 .win-letter{transform:translate(-50%,-50%) scale(.2);opacity:0;animation:pop .5s ease forwards}
@@ -208,7 +232,7 @@ function ghostMove(from,toEl,player,size,dur=650){
     const cw=B.w||80,ratio=(size===3?0.95:size===2?0.72:0.55),wh=cw*ratio;
     const g=document.createElement("div");
     g.className=`piece ${player==='blue'?'blue-piece':'orange-piece'} size-${size} ghost`;
-    g.style.left=A.x+"px"; g.style.top=A.y+"px"; g.style.width=wh+"px"; g.style.height=wh+"px";
+    g.style.left=A.x+"px"; g.style.top=A.y+"px"; g.style.Width; g.style.width=wh+"px"; g.style.height=wh+"px";
     const badge=document.createElement("span"); badge.className="size-badge"; badge.textContent=sizeNames[size]; g.appendChild(badge);
     g.style.transitionDuration=dur+"ms"; document.body.appendChild(g);
     g.getBoundingClientRect();
@@ -324,10 +348,12 @@ function runAIMoveIfAny(){
 function startWinSequence(){
   gameOver=true; clearArrow(); clearHints(); clearTrayGlow();
   winLineIdx=getWinningLine('blue'); if(!winLineIdx) return;
+  document.body.classList.add('win-spotlight'); /* 強化期間聚焦三子 */
   winPulse=new Set(winLineIdx); render();
   setTimeout(()=>{ winPulse.clear(); render(); toYCHAndBanners(); }, WIN_DELAY);
 }
 function toYCHAndBanners(){
+  document.body.classList.remove('win-spotlight'); /* 結束聚焦 */
   const pts=winLineIdx.map(i=>({i,...getCenter(boardEl.children[i])}));
   pts.sort((a,b)=>a.x!==b.x?(a.x-b.x):(a.y-b.y));
   const letters=["Y","C","H"];
