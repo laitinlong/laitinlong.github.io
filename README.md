@@ -59,10 +59,9 @@
 .ghost{position:fixed;left:0;top:0;transform:translate(-50%,-50%);transition:left .65s ease,top .65s ease;pointer-events:none;z-index:9000;will-change:left,top}
 .msg{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:#111;color:#fff;padding:8px 12px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s}
 .msg.show{opacity:.9}
-.v-banner{display:flex;align-items:center;justify-content:center;border:0;background:transparent}
+.v-banner{display:flex;align-items:center;justify-content:center;border:0;background:transparent;opacity:0;transition:opacity .5s}
 .vt{writing-mode:vertical-rl;text-orientation:upright;font-weight:1000;letter-spacing:.25em;font-size:clamp(22px,4.8vw,48px)}
-.vt-left{color:var(--green-dark)}
-.vt-right{color:var(--orange)}
+.vt-left{color:var(--green-dark)}.vt-right{color:var(--orange)}
 </style>
 </head>
 <body>
@@ -121,8 +120,7 @@ const appEl=document.querySelector('.app'),trayBlue=document.getElementById('tra
 
 let board,counts,current,selectedSize,gameOver;
 let teachingMode=true,stepIndex=0,movingFromIndex=null,pvpSelectedFrom=null;
-let winLetters={};
-let currentArrow=null; let ghostAnim=null;
+let winLetters={}; let currentArrow=null; let ghostAnim=null;
 
 const SCRIPT=[
   {actor:'blue',type:'place',size:3,to:4},
@@ -154,10 +152,12 @@ if(!boardEl.children.length){
 function resetCommon(){ board=Array.from({length:9},()=>[]); counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}}; selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null; currentArrow=null; clearArrow(); render(); clearHints(); clearTrayGlow(); }
 function clearWinLettersDOM(){ Array.from(boardEl.children).forEach(c=>{ const ov=c.querySelector('.cell-overlay'); if(ov) ov.innerHTML=""; }); winLetters={}; }
 function hideBanners(){ const l=document.getElementById('bnL'),r=document.getElementById('bnR'); if(l) l.remove(); if(r) r.remove(); trayBlue.style.display=''; trayOrange.style.display=''; }
-function showBanners(){ if(document.getElementById('bnL'))return; trayBlue.style.display='none'; trayOrange.style.display='none';
+function hideTrays(){ trayBlue.style.display='none'; trayOrange.style.display='none'; }
+function showBanners(){ if(document.getElementById('bnL'))return;
   const l=document.createElement('div'); l.id='bnL'; l.className='v-banner'; l.style.gridArea='left'; l.innerHTML='<div class="vt vt-left">數字教育</div>';
   const r=document.createElement('div'); r.id='bnR'; r.className='v-banner'; r.style.gridArea='right'; r.innerHTML='<div class="vt vt-right">科創未來</div>';
   appEl.appendChild(l); appEl.appendChild(r);
+  requestAnimationFrame(()=>{ l.style.opacity=1; r.style.opacity=1; });
 }
 function resetTeaching(){ clearWinLettersDOM(); teachingMode=true; stepIndex=0; modeBtn.textContent="退出教學模式"; restartBtn.style.display="none"; swapBtn.style.display="none"; resetCommon(); current="blue"; hideBanners(); showNextHint(); }
 function resetPVP(start="blue"){ clearWinLettersDOM(); teachingMode=false; modeBtn.textContent="開始教學模式"; restartBtn.style.display=""; swapBtn.style.display=""; resetCommon(); current=start; hideBanners(); render(); hint("PVP 開始，先手："+(current==="blue"?"綠":"橙")); }
@@ -187,19 +187,8 @@ document.querySelectorAll(".tray-btn").forEach(btn=>{
 
 function layoutArrowLayer(){
   const vv=window.visualViewport;
-  if(vv){
-    arrowLayer.style.width = vv.width + "px";
-    arrowLayer.style.height= vv.height+ "px";
-    arrowLayer.style.left  = "0px";
-    arrowLayer.style.top   = "0px";
-    arrowLayer.setAttribute('viewBox',`0 0 ${vv.width} ${vv.height}`);
-  }else{
-    arrowLayer.style.width = "100vw";
-    arrowLayer.style.height= "100vh";
-    arrowLayer.style.left  = "0px";
-    arrowLayer.style.top   = "0px";
-    arrowLayer.setAttribute('viewBox',`0 0 ${window.innerWidth} ${window.innerHeight}`);
-  }
+  if(vv){ arrowLayer.style.width=vv.width+"px"; arrowLayer.style.height=vv.height+"px"; arrowLayer.style.left="0px"; arrowLayer.style.top="0px"; arrowLayer.setAttribute('viewBox',`0 0 ${vv.width} ${vv.height}`);}
+  else{ arrowLayer.style.width="100vw"; arrowLayer.style.height="100vh"; arrowLayer.style.left="0px"; arrowLayer.style.top="0px"; arrowLayer.setAttribute('viewBox',`0 0 ${window.innerWidth} ${window.innerHeight}`);}
 }
 function getCenter(el){ if(!el) return null; const r=el.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/2,w:r.width,h:r.height}; }
 function offsetEndpoints(aEl,bEl){
@@ -352,7 +341,7 @@ function winToLetters(){
     s.style.animationDelay=(idx*180)+'ms'; overlay.appendChild(s);
     setTimeout(()=>{ overlay.innerHTML=""; const st=document.createElement('span'); st.className='win-letter-still'; st.textContent=letters[idx]; overlay.appendChild(st); }, 700+idx*180);
   });
-  showBanners();
+  hideTrays(); setTimeout(showBanners,5000);
 }
 function handlePVP(index){
   if(gameOver) return;
