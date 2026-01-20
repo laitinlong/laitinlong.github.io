@@ -232,7 +232,7 @@ function ghostMove(from,toEl,player,size,dur=650){
     const cw=B.w||80,ratio=(size===3?0.95:size===2?0.72:0.55),wh=cw*ratio;
     const g=document.createElement("div");
     g.className=`piece ${player==='blue'?'blue-piece':'orange-piece'} size-${size} ghost`;
-    g.style.left=A.x+"px"; g.style.top=A.y+"px"; g.style.Width; g.style.width=wh+"px"; g.style.height=wh+"px";
+    g.style.left=A.x+"px"; g.style.top=A.y+"px"; g.style.width=wh+"px"; g.style.height=wh+"px";
     const badge=document.createElement("span"); badge.className="size-badge"; badge.textContent=sizeNames[size]; g.appendChild(badge);
     g.style.transitionDuration=dur+"ms"; document.body.appendChild(g);
     g.getBoundingClientRect();
@@ -348,12 +348,23 @@ function runAIMoveIfAny(){
 function startWinSequence(){
   gameOver=true; clearArrow(); clearHints(); clearTrayGlow();
   winLineIdx=getWinningLine('blue'); if(!winLineIdx) return;
-  document.body.classList.add('win-spotlight'); /* 強化期間聚焦三子 */
+  document.body.classList.add('win-spotlight');
   winPulse=new Set(winLineIdx); render();
   setTimeout(()=>{ winPulse.clear(); render(); toYCHAndBanners(); }, WIN_DELAY);
 }
 function toYCHAndBanners(){
-  document.body.classList.remove('win-spotlight'); /* 結束聚焦 */
+  document.body.classList.remove('win-spotlight');
+
+  /* 清走非勝利線上的橙色棋（5秒後） */
+  const winSet=new Set(winLineIdx);
+  for(let i=0;i<9;i++){
+    if(!winSet.has(i)&&board[i].length){
+      board[i]=board[i].filter(p=>p.player!=='orange');
+    }
+  }
+  render();
+
+  /* 轉 Y C H */
   const pts=winLineIdx.map(i=>({i,...getCenter(boardEl.children[i])}));
   pts.sort((a,b)=>a.x!==b.x?(a.x-b.x):(a.y-b.y));
   const letters=["Y","C","H"];
