@@ -1,18 +1,17 @@
 
-<!doctype html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <title>超級過三關</title>
 <style>
-:root{--green:#2ecc71;--green-dark:#1b8f4d;--orange:#ff8c00;--board-bg:#f7f7f9;--cell-size:min(22vmin,130px);--gap:10px;--hint:#43a047;--move:#43a047;--arrowPlace:#43a047;--arrowMove:#43a047;--winBright:1.18;--winSat:1.6}
+:root{--green:#2ecc71;--green-dark:#1b8f4d;--orange:#ff8c00;--board-bg:#f7f7f9;--cell-size:min(22vmin,130px);--gap:10px;--hint:#43a047;--move:#43a047;--arrowPlace:#43a047;--arrowMove:#43a047}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC","Microsoft JhengHei",Arial,sans-serif;background:linear-gradient(180deg,#fafafa,#f0f2f5);display:flex;min-height:100vh;align-items:center;justify-content:center;padding:16px}
 .app{width:100%;max-width:1100px;display:grid;gap:16px;align-items:start;grid-template-columns:1fr minmax(280px,480px) 1fr;grid-template-areas:"header header header" "left board right"}
 @media(max-width:900px){.app{grid-template-columns:1fr;grid-template-areas:"header" "board" "left" "right"}}
 .header{grid-area:header;display:flex;flex-direction:column;align-items:center;gap:8px}
 .title-line1{margin:0;font-weight:900;letter-spacing:.8px;color:#0f5132;font-size:clamp(28px,6.4vw,64px)}
 .title-line2{margin:0;font-weight:900;letter-spacing:.6px;color:var(--green);font-size:clamp(24px,5.6vw,56px)}
-.title-line2::before,.title-line2::after{content:none!important}
+.title-line2::before,.title-line2::after{content:none!important;background:none!important;box-shadow:none!important}
 .title-line2 a,.title-line2 .anchor,.title-line2 [class*="icon"],.title-line2 svg{display:none!important}
 .header-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .dot{width:14px;height:14px;border-radius:50%}.dot.blue{background:var(--green)}.dot.orange{background:var(--orange)}
@@ -59,22 +58,19 @@
 @keyframes winGlow{0%{transform:translate(-50%,-50%) scale(1);filter:saturate(1.4) brightness(1.08)}50%{transform:translate(-50%,-50%) scale(1.12);filter:saturate(1.6) brightness(1.18)}100%{transform:translate(-50%,-50%) scale(1);filter:saturate(1.4) brightness(1.08)}}
 @keyframes winRing{0%{box-shadow:0 0 0 0 rgba(67,160,71,.75)}100%{box-shadow:0 0 0 22px rgba(67,160,71,0)}}
 .size-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-weight:900;background:rgba(0,0,0,.35);border-radius:999px;padding:2px 8px;box-shadow:0 2px 6px rgba(0,0,0,.25);user-select:none;z-index:3}
+.win-letter,.win-letter-still{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:1000;color:#16a34a;text-shadow:0 2px 0 #fff,0 0 10px rgba(22,163,74,.55),0 0 18px rgba(22,163,74,.35);font-size:clamp(30px,7vw,56px);pointer-events:none;z-index:30}
+.win-letter{transform:translate(-50%,-50%) scale(.2);opacity:0;animation:pop .5s ease forwards}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}60%{transform:translate(-50%,-50%) scale(1.15);opacity:1}100%{transform:translate(-50%,-50%) scale(1)}}
 .arrow-layer{position:fixed;left:0;top:0;pointer-events:none;z-index:9999}
 .arrow-path{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5 12;opacity:.8;animation:dashMove 1.2s linear infinite;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
 @keyframes dashMove{to{stroke-dashoffset:-14}}
 .ghost{position:fixed;left:0;top:0;transform:translate(-50%,-50%);transition:left .65s ease,top .65s ease;pointer-events:none;z-index:9000;will-change:left,top}
 .msg{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:#111;color:#fff;padding:8px 12px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s}
 .msg.show{opacity:.9}
+/* 行動裝置按壓回饋 */
 .cell:active{transform:scale(0.985)}.tray-btn:active{transform:translateY(0);box-shadow:0 1px 6px rgba(0,0,0,.08)}
+/* 減少動效（無障礙） */
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}.arrow-path{animation:none!important}.moving-piece,.win-pulse{animation:none!important}}
-
-/* ===== 棋子 → Y/C/H 溶化（同棋子紋路、最亮亮度） ===== */
-.morph-wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:86%;height:86%;filter:saturate(var(--winSat)) brightness(var(--winBright));pointer-events:none}
-.ych-svg{width:100%;height:100%}
-.morph-piece{transform-origin:50% 50%;animation:mp 1000ms ease forwards;filter:url(#goo-lite)}
-.morph-letter{opacity:0;transform-origin:50% 50%;animation:ml 1000ms ease forwards}
-@keyframes mp{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(0.1)}}
-@keyframes ml{0%{opacity:0;transform:scale(.86)}100%{opacity:1;transform:scale(1)}}
 </style>
 </head>
 <body>
@@ -123,11 +119,11 @@ const sizeNames={1:"小",2:"中",3:"大"},winLines=[[0,1,2],[3,4,5],[6,7,8],[0,3
 const boardEl=document.getElementById("board"),turnDot=document.getElementById("turnDot"),turnText=document.getElementById("turnText");
 const restartBtn=document.getElementById("restartBtn"),swapBtn=document.getElementById("swapBtn"),modeBtn=document.getElementById("modeBtn");
 const arrowLayer=document.getElementById('arrowLayer'),arrowPath=document.getElementById('arrowPath'),msgEl=document.getElementById('msg');
-const trayBlue=document.getElementById('trayBlue'),trayOrange=document.getElementById('trayOrange');
+const appEl=document.querySelector('.app'),trayBlue=document.getElementById('trayBlue'),trayOrange=document.getElementById('trayOrange');
 
 let board,counts,current,selectedSize,gameOver;
 let teachingMode=true,stepIndex=0,movingFromIndex=null,pvpSelectedFrom=null;
-let currentArrow=null,ghostAnim=null,winPulse=new Set(),winLineIdx=null;
+let winLetters={},currentArrow=null,ghostAnim=null,winPulse=new Set(),winLineIdx=null;
 
 const SCRIPT=[
   {actor:'blue',type:'place',size:3,to:4},
@@ -157,8 +153,10 @@ if(!boardEl.children.length){
 }
 
 function resetCommon(){ board=Array.from({length:9},()=>[]); counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}}; selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null; currentArrow=null; clearArrow(); winPulse.clear(); winLineIdx=null; render(); clearHints(); clearTrayGlow(); }
-function resetTeaching(){ teachingMode=true; stepIndex=0; modeBtn.textContent="退出教學模式"; restartBtn.style.display="none"; swapBtn.style.display="none"; resetCommon(); current="blue"; render(); showNextHint(); }
-function resetPVP(start="blue"){ teachingMode=false; modeBtn.textContent="開始教學模式"; restartBtn.style.display=""; swapBtn.style.display=""; resetCommon(); current=start; render(); hint("PVP 開始，先手："+(current==="blue"?"綠":"橙")); }
+function clearWinLettersDOM(){ Array.from(boardEl.children).forEach(c=>{ const ov=c.querySelector('.cell-overlay'); if(ov) ov.innerHTML=""; }); winLetters={}; }
+
+function resetTeaching(){ clearWinLettersDOM(); teachingMode=true; stepIndex=0; modeBtn.textContent="退出教學模式"; restartBtn.style.display="none"; swapBtn.style.display="none"; resetCommon(); current="blue"; render(); showNextHint(); }
+function resetPVP(start="blue"){ clearWinLettersDOM(); teachingMode=false; modeBtn.textContent="開始教學模式"; restartBtn.style.display=""; swapBtn.style.display=""; resetCommon(); current=start; render(); hint("PVP 開始，先手："+(current==="blue"?"綠":"橙")); }
 
 restartBtn.addEventListener("click",()=>{ if(gameOver) return; if(!teachingMode) resetPVP("blue"); });
 swapBtn.addEventListener("click",()=>{ if(gameOver) return; if(!teachingMode){ current=(current==="blue")?"orange":"blue"; resetPVP(current); hint("已換邊起手："+(current==="blue"?"綠":"橙")); }});
@@ -242,7 +240,9 @@ function render(){
       const b=document.createElement("span"); b.className="size-badge"; b.textContent=sizeNames[t.size]; p.appendChild(b);
       content.appendChild(p);
     }
-    overlay.innerHTML=overlay.innerHTML; /* 保持已插入的SVG不被覆蓋 */
+    if(winLetters[i] && !overlay.querySelector('.win-letter,.win-letter-still')){
+      const s=document.createElement('span'); s.className='win-letter-still'; s.textContent=winLetters[i]; overlay.appendChild(s);
+    }
   }
   [1,2,3].forEach(s=>{
     const cb=document.getElementById(`count-blue-${s}`),co=document.getElementById(`count-orange-${s}`);
@@ -329,59 +329,17 @@ function startWinSequence(){
   winLineIdx=getWinningLine('blue'); if(!winLineIdx) return;
   document.body.classList.add('win-spotlight');
   winPulse=new Set(winLineIdx); render();
-  setTimeout(()=>{ winPulse.clear(); render(); toYCHMorph(); }, WIN_DELAY);
+  setTimeout(()=>{ winPulse.clear(); render(); toYCHAndBanners(); }, WIN_DELAY);
 }
-
-/* 產生一個 SVG：用「棋子的層次」裁成字形；並做棋子→文字的溶化過渡 */
-function createMorph(letter){
-  const wrap=document.createElement('div'); wrap.className='morph-wrap';
-  wrap.innerHTML=`
-  <svg class="ych-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-    <defs>
-      <radialGradient id="gfill" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stop-color="var(--green)"/><stop offset="100%" stop-color="var(--green)"/>
-      </radialGradient>
-      <radialGradient id="hi" cx="50%" cy="38%" r="25%">
-        <stop offset="0%" stop-color="rgba(255,255,255,.95)"/>
-        <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-      </radialGradient>
-      <filter id="goo-lite">
-        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="3" result="turb"/>
-        <feDisplacementMap in="SourceGraphic" in2="turb" scale="3" xChannelSelector="R" yChannelSelector="G"/>
-      </filter>
-      <clipPath id="clipText">
-        <text x="50" y="62" text-anchor="middle" font-size="60" font-weight="1000" font-family="Inter,system-ui,Segoe UI,Arial" letter-spacing="2">${letter}</text>
-      </clipPath>
-    </defs>
-
-    <!-- 棋子圖層（完整圓形） -->
-    <g class="morph-piece">
-      <circle cx="50" cy="50" r="46" fill="url(#gfill)" stroke="var(--green-dark)" stroke-width="4"/>
-      <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,.95)" stroke-width="5"/>
-      <circle cx="50" cy="50" r="34" fill="none" stroke="var(--green-dark)" stroke-width="7"/>
-      <circle cx="50" cy="38" r="12" fill="url(#hi)"/>
-    </g>
-
-    <!-- 文字圖層（同樣圖層，但被字形裁剪） -->
-    <g class="morph-letter" clip-path="url(#clipText)">
-      <circle cx="50" cy="50" r="46" fill="url(#gfill)" stroke="var(--green-dark)" stroke-width="8"/>
-      <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,.95)" stroke-width="8"/>
-      <circle cx="50" cy="50" r="34" fill="none" stroke="var(--green-dark)" stroke-width="10"/>
-      <circle cx="50" cy="38" r="16" fill="url(#hi)"/>
-    </g>
-  </svg>`;
-  return wrap;
-}
-
-/* 把非贏線的橙棋移走，然後做「溶化變字」 */
-function toYCHMorph(){
+function toYCHAndBanners(){
+  document.body.classList.remove('win-spotlight');
   const winSet=new Set(winLineIdx);
   for(let i=0;i<9;i++){
     if(!winSet.has(i) && board[i].length){
-      const t=board[i][board[i].length-1];
+      const t=topPiece(i);
       if(t && t.player==='orange'){
         board[i].pop();
-        const t2=board[i][board[i].length-1];
+        const t2=topPiece(i);
         if(t2 && t2.player==='blue') board[i].pop();
       }
     }
@@ -391,21 +349,15 @@ function toYCHMorph(){
   pts.sort((a,b)=>a.x!==b.x?(a.x-b.x):(a.y-b.y));
   const letters=["Y","C","H"];
   pts.forEach((p,idx)=>{
-    const cell=boardEl.children[p.i];
-    const overlay=cell.querySelector('.cell-overlay');
-    const pieceEl=cell.querySelector('.cell-content .piece');
-    if(pieceEl){ pieceEl.style.animationDelay=(idx*140)+'ms'; pieceEl.classList.add('moving-piece'); pieceEl.style.filter='saturate(1.6) brightness(1.18)'; pieceEl.style.animation='mp 1000ms ease forwards'; pieceEl.style.animationDelay=(idx*140)+'ms'; pieceEl.style.transformOrigin='50% 50%'; }
-    const m=createMorph(letters[idx]);
-    m.style.animationDelay=(idx*140)+'ms';
-    const svg=m.querySelector('svg');
-    const g1=svg.querySelector('.morph-piece'),g2=svg.querySelector('.morph-letter');
-    g1.style.animationDelay=(idx*140)+'ms';
-    g2.style.animationDelay=(idx*140)+'ms';
-    overlay.appendChild(m);
-    setTimeout(()=>{ board[p.i]=[]; }, 950+idx*140);
+    board[p.i]=[]; winLetters[p.i]=letters[idx];
+    const cell=boardEl.children[p.i],content=cell.querySelector('.cell-content'),overlay=cell.querySelector('.cell-overlay');
+    content.innerHTML=""; overlay.innerHTML="";
+    const s=document.createElement('span'); s.className='win-letter'; s.textContent=letters[idx];
+    s.style.animationDelay=(idx*180)+'ms'; overlay.appendChild(s);
+    setTimeout(()=>{ overlay.innerHTML=""; const st=document.createElement('span'); st.className='win-letter-still'; st.textContent=letters[idx]; overlay.appendChild(st); }, 700+idx*180);
   });
+  // 不再隱藏托盤、不再顯示任何左右直幅
 }
-
 function handlePVP(index){
   if(gameOver) return;
   const tp=topPiece(index);
@@ -428,7 +380,6 @@ function handlePVP(index){
   if(checkWin(current)){ alert((current==='blue'?'綠':'橙')+'方勝'); gameOver=true; return; }
   switchTurn();
 }
-
 let uiLocked=false;
 function lock(){ uiLocked=true; document.body.style.pointerEvents='none'; }
 function unlock(){ uiLocked=false; document.body.style.pointerEvents='auto'; }
@@ -453,4 +404,3 @@ layoutArrowLayer(); resetTeaching();
 </script>
 </body>
 </html>
-``
