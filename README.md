@@ -12,10 +12,8 @@
 .header{grid-area:header;display:flex;flex-direction:column;align-items:center;gap:8px}
 .title-line1{margin:0;font-weight:900;letter-spacing:.8px;color:#0f5132;font-size:clamp(28px,6.4vw,64px)}
 .title-line2{margin:0;font-weight:900;letter-spacing:.6px;color:var(--green);font-size:clamp(24px,5.6vw,56px)}
-/* 移除標題旁任何注入圖示/錨點 */
 .title-line2::before,.title-line2::after{content:none!important;background:none!important;box-shadow:none!important}
 .title-line2 a,.title-line2 .anchor,.title-line2 [class*="icon"],.title-line2 svg{display:none!important}
-
 .header-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .dot{width:14px;height:14px;border-radius:50%}.dot.blue{background:var(--green)}.dot.orange{background:var(--orange)}
 .turn-text{font-weight:800;font-size:14px}
@@ -54,15 +52,12 @@
 .orange-piece::before{transform:translate(-50%,-50%) rotate(45deg)}.orange-piece::after{transform:translate(-50%,-50%) rotate(-45deg)}
 .moving-piece{box-shadow:0 0 0 4px rgba(67,160,71,.85),0 0 14px 2px rgba(67,160,71,.45),inset 0 0 0 3px rgba(255,255,255,.7);animation:movingPulse 1.1s ease-in-out infinite}
 @keyframes movingPulse{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.03)}100%{transform:translate(-50%,-50%) scale(1)}}
-
-/* 強化勝利 5 秒特效 */
 .win-spotlight .board .piece{opacity:.28;filter:grayscale(.1) saturate(.8)}
 .win-spotlight .board .win-pulse{opacity:1;filter:none}
 .win-pulse{box-shadow:0 0 0 6px rgba(67,160,71,.95),0 0 28px 8px rgba(67,160,71,.55),inset 0 0 0 3px rgba(255,255,255,.9);animation:winGlow .85s ease-in-out infinite}
 .piece.win-pulse::after{content:"";position:absolute;inset:-8%;border-radius:50%;box-shadow:0 0 0 0 rgba(67,160,71,.75);animation:winRing 1.1s ease-out infinite}
 @keyframes winGlow{0%{transform:translate(-50%,-50%) scale(1);filter:saturate(1.4) brightness(1.08)}50%{transform:translate(-50%,-50%) scale(1.12);filter:saturate(1.6) brightness(1.18)}100%{transform:translate(-50%,-50%) scale(1);filter:saturate(1.4) brightness(1.08)}}
 @keyframes winRing{0%{box-shadow:0 0 0 0 rgba(67,160,71,.75)}100%{box-shadow:0 0 0 22px rgba(67,160,71,0)}}
-
 .size-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-weight:900;background:rgba(0,0,0,.35);border-radius:999px;padding:2px 8px;box-shadow:0 2px 6px rgba(0,0,0,.25);user-select:none;z-index:3}
 .win-letter,.win-letter-still{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:1000;color:#16a34a;text-shadow:0 2px 0 #fff,0 0 10px rgba(22,163,74,.55),0 0 18px rgba(22,163,74,.35);font-size:clamp(30px,7vw,56px);pointer-events:none;z-index:30}
 .win-letter{transform:translate(-50%,-50%) scale(.2);opacity:0;animation:pop .5s ease forwards}
@@ -73,9 +68,10 @@
 .ghost{position:fixed;left:0;top:0;transform:translate(-50%,-50%);transition:left .65s ease,top .65s ease;pointer-events:none;z-index:9000;will-change:left,top}
 .msg{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:#111;color:#fff;padding:8px 12px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s}
 .msg.show{opacity:.9}
-.v-banner{display:flex;align-items:center;justify-content:center;border:0;background:transparent;opacity:0;transition:opacity .5s}
-.vt{writing-mode:vertical-rl;text-orientation:upright;font-weight:1000;letter-spacing:.25em;font-size:clamp(22px,4.8vw,48px)}
-.vt-left{color:var(--green-dark)}.vt-right{color:var(--orange)}
+/* 行動裝置按壓回饋 */
+.cell:active{transform:scale(0.985)}.tray-btn:active{transform:translateY(0);box-shadow:0 1px 6px rgba(0,0,0,.08)}
+/* 減少動效（無障礙） */
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}.arrow-path{animation:none!important}.moving-piece,.win-pulse{animation:none!important}}
 </style>
 </head>
 <body>
@@ -116,7 +112,7 @@
   </div>
 </div>
 
-<div id="msg" class="msg"></div>
+<div id="msg" class="msg" role="status" aria-live="polite"></div>
 
 <script>
 (function(){
@@ -159,17 +155,12 @@ if(!boardEl.children.length){
 
 function resetCommon(){ board=Array.from({length:9},()=>[]); counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}}; selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null; currentArrow=null; clearArrow(); winPulse.clear(); winLineIdx=null; render(); clearHints(); clearTrayGlow(); }
 function clearWinLettersDOM(){ Array.from(boardEl.children).forEach(c=>{ const ov=c.querySelector('.cell-overlay'); if(ov) ov.innerHTML=""; }); winLetters={}; }
-function hideBanners(){ const l=document.getElementById('bnL'),r=document.getElementById('bnR'); if(l) l.remove(); if(r) r.remove(); trayBlue.style.display=''; trayOrange.style.display=''; }
-function showBanners(){ if(document.getElementById('bnL'))return;
-  const l=document.createElement('div'); l.id='bnL'; l.className='v-banner'; l.style.gridArea='left'; l.innerHTML='<div class="vt vt-left">數字教育</div>';
-  const r=document.createElement('div'); r.id='bnR'; r.className='v-banner'; r.style.gridArea='right'; r.innerHTML='<div class="vt vt-right">科創未來</div>';
-  appEl.appendChild(l); appEl.appendChild(r); requestAnimationFrame(()=>{ l.style.opacity=1; r.style.opacity=1; });
-}
-function resetTeaching(){ clearWinLettersDOM(); teachingMode=true; stepIndex=0; modeBtn.textContent="退出教學模式"; restartBtn.style.display="none"; swapBtn.style.display="none"; resetCommon(); current="blue"; hideBanners(); showNextHint(); }
-function resetPVP(start="blue"){ clearWinLettersDOM(); teachingMode=false; modeBtn.textContent="開始教學模式"; restartBtn.style.display=""; swapBtn.style.display=""; resetCommon(); current=start; hideBanners(); render(); hint("PVP 開始，先手："+(current==="blue"?"綠":"橙")); }
 
-restartBtn.addEventListener("click",()=>{ if(!teachingMode) resetPVP("blue"); });
-swapBtn.addEventListener("click",()=>{ if(!teachingMode){ current=(current==="blue")?"orange":"blue"; resetPVP(current); hint("已換邊起手："+(current==="blue"?"綠":"橙")); }});
+function resetTeaching(){ clearWinLettersDOM(); teachingMode=true; stepIndex=0; modeBtn.textContent="退出教學模式"; restartBtn.style.display="none"; swapBtn.style.display="none"; resetCommon(); current="blue"; render(); showNextHint(); }
+function resetPVP(start="blue"){ clearWinLettersDOM(); teachingMode=false; modeBtn.textContent="開始教學模式"; restartBtn.style.display=""; swapBtn.style.display=""; resetCommon(); current=start; render(); hint("PVP 開始，先手："+(current==="blue"?"綠":"橙")); }
+
+restartBtn.addEventListener("click",()=>{ if(gameOver) return; if(!teachingMode) resetPVP("blue"); });
+swapBtn.addEventListener("click",()=>{ if(gameOver) return; if(!teachingMode){ current=(current==="blue")?"orange":"blue"; resetPVP(current); hint("已換邊起手："+(current==="blue"?"綠":"橙")); }});
 modeBtn.addEventListener("click",()=>{ teachingMode?resetPVP("blue"):resetTeaching(); });
 
 document.querySelectorAll(".tray-btn").forEach(btn=>{
@@ -343,8 +334,6 @@ function startWinSequence(){
 }
 function toYCHAndBanners(){
   document.body.classList.remove('win-spotlight');
-
-  /* 5秒後：清走非勝利線頂層橙 + 其下方一枚綠（如存在） */
   const winSet=new Set(winLineIdx);
   for(let i=0;i<9;i++){
     if(!winSet.has(i) && board[i].length){
@@ -357,8 +346,6 @@ function toYCHAndBanners(){
     }
   }
   render();
-
-  /* 轉 Y C H */
   const pts=winLineIdx.map(i=>({i,...getCenter(boardEl.children[i])}));
   pts.sort((a,b)=>a.x!==b.x?(a.x-b.x):(a.y-b.y));
   const letters=["Y","C","H"];
@@ -370,7 +357,7 @@ function toYCHAndBanners(){
     s.style.animationDelay=(idx*180)+'ms'; overlay.appendChild(s);
     setTimeout(()=>{ overlay.innerHTML=""; const st=document.createElement('span'); st.className='win-letter-still'; st.textContent=letters[idx]; overlay.appendChild(st); }, 700+idx*180);
   });
-  trayBlue.style.display='none'; trayOrange.style.display='none'; showBanners();
+  // 不再隱藏托盤、不再顯示任何左右直幅
 }
 function handlePVP(index){
   if(gameOver) return;
@@ -418,3 +405,4 @@ layoutArrowLayer(); resetTeaching();
 </script>
 </body>
 </html>
+``
