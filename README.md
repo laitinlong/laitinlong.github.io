@@ -5,14 +5,14 @@
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <title>超級過三關</title>
 <style>
-:root{--green:#2ecc71;--green-dark:#1b8f4d;--orange:#ff8c00;--board-bg:#f7f7f9;--cell-size:min(22vmin,130px);--gap:10px;--hint:#43a047;--move:#43a047;--arrowPlace:#43a047;--arrowMove:#43a047}
+:root{--green:#2ecc71;--green-dark:#1b8f4d;--orange:#ff8c00;--board-bg:#f7f7f9;--cell-size:min(22vmin,130px);--gap:10px;--hint:#43a047;--move:#43a047;--arrowPlace:#43a047;--arrowMove:#43a047;--winBright:1.18;--winSat:1.6}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC","Microsoft JhengHei",Arial,sans-serif;background:linear-gradient(180deg,#fafafa,#f0f2f5);display:flex;min-height:100vh;align-items:center;justify-content:center;padding:16px}
 .app{width:100%;max-width:1100px;display:grid;gap:16px;align-items:start;grid-template-columns:1fr minmax(280px,480px) 1fr;grid-template-areas:"header header header" "left board right"}
 @media(max-width:900px){.app{grid-template-columns:1fr;grid-template-areas:"header" "board" "left" "right"}}
 .header{grid-area:header;display:flex;flex-direction:column;align-items:center;gap:8px}
 .title-line1{margin:0;font-weight:900;letter-spacing:.8px;color:#0f5132;font-size:clamp(28px,6.4vw,64px)}
 .title-line2{margin:0;font-weight:900;letter-spacing:.6px;color:var(--green);font-size:clamp(24px,5.6vw,56px)}
-.title-line2::before,.title-line2::after{content:none!important}
+.title-line2::before,.title-line2::after{content:none!important;background:none!important;box-shadow:none!important}
 .title-line2 a,.title-line2 .anchor,.title-line2 [class*="icon"],.title-line2 svg{display:none!important}
 .header-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .dot{width:14px;height:14px;border-radius:50%}.dot.blue{background:var(--green)}.dot.orange{background:var(--orange)}
@@ -58,40 +58,28 @@
 .piece.win-pulse::after{content:"";position:absolute;inset:-8%;border-radius:50%;box-shadow:0 0 0 0 rgba(67,160,71,.75);animation:winRing 1.1s ease-out infinite}
 @keyframes winGlow{0%{transform:translate(-50%,-50%) scale(1);filter:saturate(1.4) brightness(1.08)}50%{transform:translate(-50%,-50%) scale(1.12);filter:saturate(1.6) brightness(1.18)}100%{transform:translate(-50%,-50%) scale(1);filter:saturate(1.4) brightness(1.08)}}
 @keyframes winRing{0%{box-shadow:0 0 0 0 rgba(67,160,71,.75)}100%{box-shadow:0 0 0 22px rgba(67,160,71,0)}}
-
-/* GRAND & BRIGHT 的 Y/C/H 樣式 */
 .size-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-weight:900;background:rgba(0,0,0,.35);border-radius:999px;padding:2px 8px;box-shadow:0 2px 6px rgba(0,0,0,.25);user-select:none;z-index:3}
-.win-letter,.win-letter-still{
-  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  font-weight:1000;letter-spacing:.02em;pointer-events:none;z-index:30;
-  font-size:clamp(48px,10vw,96px);
-  /* 雙層漸層 + 內描邊 + 外光暈 */
-  color:transparent;
-  background:
-    radial-gradient(120% 140% at 50% 0%, #ffffff 5%, #b6ffcc 30%, #29d26b 60%, #0f9f4f 85%) no-repeat,
-    linear-gradient(120deg, rgba(255,255,255,.9), rgba(255,255,255,0) 40%, rgba(255,255,255,.8) 60%, rgba(255,255,255,0) 80%) no-repeat;
-  background-size:100% 100%, 300% 100%;
-  background-position:center, -150% 0%;
-  -webkit-background-clip:text;background-clip:text;
-  text-shadow:
-    0 2px 0 rgba(255,255,255,.75),
-    0 0 16px rgba(46,204,113,.55),
-    0 0 34px rgba(46,204,113,.35),
-    0 0 64px rgba(46,204,113,.25);
-  filter:drop-shadow(0 6px 16px rgba(0,0,0,.18));
-}
-.win-letter{transform:translate(-50%,-50%) scale(.2);opacity:0;animation:pop .5s ease forwards, shine 2.2s ease-in-out 200ms forwards}
-@keyframes pop{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}60%{transform:translate(-50%,-50%) scale(1.18);opacity:1}100%{transform:translate(-50%,-50%) scale(1)}}
-@keyframes shine{0%{background-position:center, -150% 0%}60%{background-position:center, 110% 0%}100%{background-position:center, 110% 0%}}
-/* 行動裝置按壓回饋 + 無障礙動效減少 */
-.cell:active{transform:scale(0.985)}.tray-btn:active{transform:translateY(0);box-shadow:0 1px 6px rgba(0,0,0,.08)}
-@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}.arrow-path{animation:none!important}.moving-piece,.win-pulse{animation:none!important}}
 .arrow-layer{position:fixed;left:0;top:0;pointer-events:none;z-index:9999}
 .arrow-path{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5 12;opacity:.8;animation:dashMove 1.2s linear infinite;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
 @keyframes dashMove{to{stroke-dashoffset:-14}}
 .ghost{position:fixed;left:0;top:0;transform:translate(-50%,-50%);transition:left .65s ease,top .65s ease;pointer-events:none;z-index:9000;will-change:left,top}
 .msg{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:#111;color:#fff;padding:8px 12px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s}
 .msg.show{opacity:.9}
+.cell:active{transform:scale(0.985)}.tray-btn:active{transform:translateY(0);box-shadow:0 1px 6px rgba(0,0,0,.08)}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}.arrow-path{animation:none!important}.moving-piece,.win-pulse{animation:none!important}}
+
+/* ===== 溶化成 Y C H（同棋子紋路、最亮亮度） ===== */
+@keyframes revealIn{0%{clip-path:circle(0% at 50% 50%);opacity:0}100%{clip-path:circle(75% at 50% 50%);opacity:1}}
+@keyframes shrinkAway{0%{clip-path:circle(75% at 50% 50%);opacity:1}100%{clip-path:circle(0% at 50% 50%);opacity:0;filter:blur(1.4px)}}
+.dissolve-out{animation:shrinkAway 1.1s ease forwards}
+.ych-letter{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:1000;pointer-events:none;z-index:30;font-size:clamp(40px,8vw,72px);
+  -webkit-text-stroke:8px var(--green-dark);
+  background:
+    radial-gradient(circle at 50% 38%,rgba(255,255,255,.95) 0 22%,rgba(255,255,255,0) 23% 25%),
+    radial-gradient(circle at 50% 50%,var(--green) 0 65%,var(--green) 66% 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:saturate(var(--winSat)) brightness(var(--winBright)) drop-shadow(0 6px 16px rgba(0,0,0,.18))}
+.ych-letter.reveal{animation:revealIn 1.1s ease forwards}
 </style>
 </head>
 <body>
@@ -261,9 +249,7 @@ function render(){
       const b=document.createElement("span"); b.className="size-badge"; b.textContent=sizeNames[t.size]; p.appendChild(b);
       content.appendChild(p);
     }
-    if(winLetters[i] && !overlay.querySelector('.win-letter,.win-letter-still')){
-      const s=document.createElement('span'); s.className='win-letter-still'; s.textContent=winLetters[i]; overlay.appendChild(s);
-    }
+    if(winLetters[i] && !overlay.querySelector('.win-letter,.win-letter-still,.ych-letter')){}
   }
   [1,2,3].forEach(s=>{
     const cb=document.getElementById(`count-blue-${s}`),co=document.getElementById(`count-orange-${s}`);
@@ -350,9 +336,10 @@ function startWinSequence(){
   winLineIdx=getWinningLine('blue'); if(!winLineIdx) return;
   document.body.classList.add('win-spotlight');
   winPulse=new Set(winLineIdx); render();
-  setTimeout(()=>{ winPulse.clear(); render(); toYCHAndBanners(); }, WIN_DELAY);
+  setTimeout(()=>{ winPulse.clear(); render(); toYCHDissolve(); }, WIN_DELAY);
 }
-function toYCHAndBanners(){
+/* 溶化階段：贏線棋子縮回，同步顯示 Y/C/H */
+function toYCHDissolve(){
   document.body.classList.remove('win-spotlight');
   const winSet=new Set(winLineIdx);
   for(let i=0;i<9;i++){
@@ -370,14 +357,11 @@ function toYCHAndBanners(){
   pts.sort((a,b)=>a.x!==b.x?(a.x-b.x):(a.y-b.y));
   const letters=["Y","C","H"];
   pts.forEach((p,idx)=>{
-    board[p.i]=[]; winLetters[p.i]=letters[idx];
-    const cell=boardEl.children[p.i],content=cell.querySelector('.cell-content'),overlay=cell.querySelector('.cell-overlay');
-    content.innerHTML=""; overlay.innerHTML="";
-    const s=document.createElement('span'); s.className='win-letter'; s.textContent=letters[idx];
-    s.style.animationDelay=(idx*180)+'ms'; overlay.appendChild(s);
-    setTimeout(()=>{ overlay.innerHTML=""; const st=document.createElement('span'); st.className='win-letter-still'; st.textContent=letters[idx]; overlay.appendChild(st); }, 700+idx*180);
+    const cell=boardEl.children[p.i],overlay=cell.querySelector('.cell-overlay'),pieceEl=cell.querySelector('.cell-content .piece');
+    if(pieceEl){ pieceEl.style.animationDelay=(idx*140)+'ms'; pieceEl.classList.add('dissolve-out'); }
+    const span=document.createElement('span'); span.className='ych-letter reveal'; span.textContent=letters[idx]; span.style.animationDelay=(idx*140)+'ms'; overlay.appendChild(span);
+    setTimeout(()=>{ board[p.i]=[]; render(); }, 800+idx*140);
   });
-  // 保留托盤，不顯示左右直幅
 }
 function handlePVP(index){
   if(gameOver) return;
@@ -425,4 +409,3 @@ layoutArrowLayer(); resetTeaching();
 </script>
 </body>
 </html>
-``
