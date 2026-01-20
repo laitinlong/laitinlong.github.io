@@ -49,6 +49,7 @@
 .orange-piece::before{transform:translate(-50%,-50%) rotate(45deg)}.orange-piece::after{transform:translate(-50%,-50%) rotate(-45deg)}
 .moving-piece{box-shadow:0 0 0 4px rgba(67,160,71,.85),0 0 14px 2px rgba(67,160,71,.45),inset 0 0 0 3px rgba(255,255,255,.7);animation:movingPulse 1.1s ease-in-out infinite}
 @keyframes movingPulse{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.03)}100%{transform:translate(-50%,-50%) scale(1)}}
+.win-pulse{box-shadow:0 0 0 4px rgba(67,160,71,.85),0 0 14px 2px rgba(67,160,71,.45),inset 0 0 0 3px rgba(255,255,255,.7);animation:movingPulse 1.1s ease-in-out infinite}
 .size-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-weight:900;background:rgba(0,0,0,.35);border-radius:999px;padding:2px 8px;box-shadow:0 2px 6px rgba(0,0,0,.25);user-select:none;z-index:3}
 .win-letter,.win-letter-still{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:1000;color:#16a34a;text-shadow:0 2px 0 #fff,0 0 10px rgba(22,163,74,.55),0 0 18px rgba(22,163,74,.35);font-size:clamp(30px,7vw,56px);pointer-events:none;z-index:30}
 .win-letter{transform:translate(-50%,-50%) scale(.2);opacity:0;animation:pop .5s ease forwards}
@@ -65,13 +66,10 @@
 </style>
 </head>
 <body>
-<svg id="arrowLayer" class="arrow-layer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" width="100%" height="100%">
-  <defs>
-    <marker id="headPlace" markerWidth="7" markerHeight="7" refX="5.6" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="var(--arrowPlace)"/></marker>
-    <marker id="headMove" markerWidth="7" markerHeight="7" refX="5.6" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="var(--arrowMove)"/></marker>
-  </defs>
-  <path id="arrowPath" class="arrow-path" d="" stroke="transparent" marker-end="url(#headPlace)"></path>
-</svg>
+<svg id="arrowLayer" class="arrow-layer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" width="100%" height="100%"><defs>
+<marker id="headPlace" markerWidth="7" markerHeight="7" refX="5.6" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="var(--arrowPlace)"/></marker>
+<marker id="headMove" markerWidth="7" markerHeight="7" refX="5.6" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="var(--arrowMove)"/></marker>
+</defs><path id="arrowPath" class="arrow-path" d="" stroke="transparent" marker-end="url(#headPlace)"></path></svg>
 
 <div class="app">
   <div class="header">
@@ -94,9 +92,7 @@
     </div>
   </div>
 
-  <div class="board-wrap">
-    <div id="board" class="board" aria-label="3x3"></div>
-  </div>
+  <div class="board-wrap"><div id="board" class="board" aria-label="3x3"></div></div>
 
   <div class="tray right" id="trayOrange">
     <div class="tray-grid">
@@ -111,8 +107,7 @@
 
 <script>
 (function(){
-const sizeNames={1:"小",2:"中",3:"大"};
-const winLines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+const sizeNames={1:"小",2:"中",3:"大"},winLines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]],WIN_DELAY=5000;
 const boardEl=document.getElementById("board"),turnDot=document.getElementById("turnDot"),turnText=document.getElementById("turnText");
 const restartBtn=document.getElementById("restartBtn"),swapBtn=document.getElementById("swapBtn"),modeBtn=document.getElementById("modeBtn");
 const arrowLayer=document.getElementById('arrowLayer'),arrowPath=document.getElementById('arrowPath'),msgEl=document.getElementById('msg');
@@ -120,7 +115,7 @@ const appEl=document.querySelector('.app'),trayBlue=document.getElementById('tra
 
 let board,counts,current,selectedSize,gameOver;
 let teachingMode=true,stepIndex=0,movingFromIndex=null,pvpSelectedFrom=null;
-let winLetters={}; let currentArrow=null; let ghostAnim=null;
+let winLetters={},currentArrow=null,ghostAnim=null,winPulse=new Set(),winLineIdx=null;
 
 const SCRIPT=[
   {actor:'blue',type:'place',size:3,to:4},
@@ -149,15 +144,13 @@ if(!boardEl.children.length){
   }
 }
 
-function resetCommon(){ board=Array.from({length:9},()=>[]); counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}}; selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null; currentArrow=null; clearArrow(); render(); clearHints(); clearTrayGlow(); }
+function resetCommon(){ board=Array.from({length:9},()=>[]); counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}}; selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null; currentArrow=null; clearArrow(); winPulse.clear(); winLineIdx=null; render(); clearHints(); clearTrayGlow(); }
 function clearWinLettersDOM(){ Array.from(boardEl.children).forEach(c=>{ const ov=c.querySelector('.cell-overlay'); if(ov) ov.innerHTML=""; }); winLetters={}; }
 function hideBanners(){ const l=document.getElementById('bnL'),r=document.getElementById('bnR'); if(l) l.remove(); if(r) r.remove(); trayBlue.style.display=''; trayOrange.style.display=''; }
-function hideTrays(){ trayBlue.style.display='none'; trayOrange.style.display='none'; }
 function showBanners(){ if(document.getElementById('bnL'))return;
   const l=document.createElement('div'); l.id='bnL'; l.className='v-banner'; l.style.gridArea='left'; l.innerHTML='<div class="vt vt-left">數字教育</div>';
   const r=document.createElement('div'); r.id='bnR'; r.className='v-banner'; r.style.gridArea='right'; r.innerHTML='<div class="vt vt-right">科創未來</div>';
-  appEl.appendChild(l); appEl.appendChild(r);
-  requestAnimationFrame(()=>{ l.style.opacity=1; r.style.opacity=1; });
+  appEl.appendChild(l); appEl.appendChild(r); requestAnimationFrame(()=>{ l.style.opacity=1; r.style.opacity=1; });
 }
 function resetTeaching(){ clearWinLettersDOM(); teachingMode=true; stepIndex=0; modeBtn.textContent="退出教學模式"; restartBtn.style.display="none"; swapBtn.style.display="none"; resetCommon(); current="blue"; hideBanners(); showNextHint(); }
 function resetPVP(start="blue"){ clearWinLettersDOM(); teachingMode=false; modeBtn.textContent="開始教學模式"; restartBtn.style.display=""; swapBtn.style.display=""; resetCommon(); current=start; hideBanners(); render(); hint("PVP 開始，先手："+(current==="blue"?"綠":"橙")); }
@@ -240,6 +233,7 @@ function render(){
       const p=document.createElement("div");
       p.className=`piece ${t.player==='blue'?'blue-piece':'orange-piece'} size-${t.size}`;
       if(i===movingFromIndex)p.classList.add('moving-piece');
+      if(winPulse.has(i))p.classList.add('win-pulse');
       const b=document.createElement("span"); b.className="size-badge"; b.textContent=sizeNames[t.size]; p.appendChild(b);
       content.appendChild(p);
     }
@@ -285,7 +279,7 @@ function onCellClick(index){
       ghostMove(dot,dst,'blue',mv.size,600).then(()=>{
         board[mv.to].push({player:'blue',size:mv.size});
         counts.blue[mv.size]--; stepIndex++; clearTrayGlow(); clearHints(); clearArrow();
-        if(checkWin('blue')){ winToLetters(); unlock(); return; }
+        if(checkWin('blue')){ startWinSequence(); unlock(); return; }
         current='orange'; render(); setTimeout(runAIMoveIfAny,450);
       });
     }else{
@@ -295,7 +289,7 @@ function onCellClick(index){
       ghostMove({x:pos.x,y:pos.y},dst,'blue',mv.size,650).then(()=>{
         board[mv.to].push({player:'blue',size:mv.size});
         stepIndex++; movingFromIndex=null; clearHints(); clearArrow();
-        if(checkWin('blue')){ winToLetters(); unlock(); return; }
+        if(checkWin('blue')){ startWinSequence(); unlock(); return; }
         current='orange'; render(); setTimeout(runAIMoveIfAny,450);
       });
     }
@@ -327,10 +321,14 @@ function runAIMoveIfAny(){
     });
   }
 }
-function winToLetters(){
+function startWinSequence(){
   gameOver=true; clearArrow(); clearHints(); clearTrayGlow();
-  const line=getWinningLine('blue'); if(!line) return;
-  const pts=line.map(i=>({i,...getCenter(boardEl.children[i])}));
+  winLineIdx=getWinningLine('blue'); if(!winLineIdx) return;
+  winPulse=new Set(winLineIdx); render();
+  setTimeout(()=>{ winPulse.clear(); render(); toYCHAndBanners(); }, WIN_DELAY);
+}
+function toYCHAndBanners(){
+  const pts=winLineIdx.map(i=>({i,...getCenter(boardEl.children[i])}));
   pts.sort((a,b)=>a.x!==b.x?(a.x-b.x):(a.y-b.y));
   const letters=["Y","C","H"];
   pts.forEach((p,idx)=>{
@@ -341,7 +339,7 @@ function winToLetters(){
     s.style.animationDelay=(idx*180)+'ms'; overlay.appendChild(s);
     setTimeout(()=>{ overlay.innerHTML=""; const st=document.createElement('span'); st.className='win-letter-still'; st.textContent=letters[idx]; overlay.appendChild(st); }, 700+idx*180);
   });
-  hideTrays(); setTimeout(showBanners,5000);
+  trayBlue.style.display='none'; trayOrange.style.display='none'; showBanners();
 }
 function handlePVP(index){
   if(gameOver) return;
@@ -384,8 +382,7 @@ if(window.visualViewport){
 }
 const ro=new ResizeObserver(viewportSync);
 ro.observe(document.documentElement); ro.observe(document.body); ro.observe(boardEl);
-layoutArrowLayer();
-resetTeaching();
+layoutArrowLayer(); resetTeaching();
 })();
 </script>
 </body>
