@@ -49,19 +49,21 @@
 .orange-piece::before{transform:translate(-50%,-50%) rotate(45deg)}.orange-piece::after{transform:translate(-50%,-50%) rotate(-45deg)}
 .moving-piece{box-shadow:0 0 0 4px rgba(67,160,71,.85),0 0 14px 2px rgba(67,160,71,.45),inset 0 0 0 3px rgba(255,255,255,.7);animation:movingPulse 1.1s ease-in-out infinite}
 @keyframes movingPulse{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.03)}100%{transform:translate(-50%,-50%) scale(1)}}
-.win-pulse{box-shadow:0 0 0 4px rgba(67,160,71,.85),0 0 14px 2px rgba(67,160,71,.45),inset 0 0 0 3px rgba(255,255,255,.7);animation:movingPulse 1.1s ease-in-out infinite}
+.win-pulse{animation:winPulse .9s ease-in-out infinite;filter:brightness(1.12) saturate(1.12);box-shadow:0 0 0 5px rgba(67,160,71,.95),0 0 20px 4px rgba(67,160,71,.45),inset 0 0 0 3px rgba(255,255,255,.75)}
+@keyframes winPulse{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.08)}100%{transform:translate(-50%,-50%) scale(1)}}
 .size-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-weight:900;background:rgba(0,0,0,.35);border-radius:999px;padding:2px 8px;box-shadow:0 2px 6px rgba(0,0,0,.25);user-select:none;z-index:3}
-.win-letter,.win-letter-still{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:1000;color:#16a34a;text-shadow:0 2px 0 #fff,0 0 10px rgba(22,163,74,.55),0 0 18px rgba(22,163,74,.35);font-size:clamp(30px,7vw,56px);pointer-events:none;z-index:30}
-.win-letter{transform:translate(-50%,-50%) scale(.2);opacity:0;animation:pop .5s ease forwards}
-@keyframes pop{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}60%{transform:translate(-50%,-50%) scale(1.15);opacity:1}100%{transform:translate(-50%,-50%) scale(1)}}
+.win-letter,.win-letter-still{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:1000;color:#16a34a;text-shadow:0 2px 0 #fff,0 0 14px rgba(22,163,74,.65),0 0 26px rgba(22,163,74,.45);font-size:clamp(30px,7vw,56px);pointer-events:none;z-index:30}
+.win-letter{transform:translate(-50%,-50%) scale(.2);opacity:0;animation:pop .6s cubic-bezier(.2,.9,.2,1) forwards,ychGlow 1.6s ease-in-out 1s infinite}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}60%{transform:translate(-50%,-50%) scale(1.28);opacity:1}100%{transform:translate(-50%,-50%) scale(1)}}
+@keyframes ychGlow{0%,100%{filter:drop-shadow(0 0 0 rgba(22,163,74,0))}50%{filter:drop-shadow(0 0 12px rgba(22,163,74,.6))}}
 .arrow-layer{position:fixed;left:0;top:0;pointer-events:none;z-index:9999}
 .arrow-path{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5 12;opacity:.8;animation:dashMove 1.2s linear infinite;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
 @keyframes dashMove{to{stroke-dashoffset:-14}}
 .ghost{position:fixed;left:0;top:0;transform:translate(-50%,-50%);transition:left .65s ease,top .65s ease;pointer-events:none;z-index:9000;will-change:left,top}
 .msg{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:#111;color:#fff;padding:8px 12px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s}
 .msg.show{opacity:.9}
-.v-banner{display:flex;align-items:center;justify-content:center;border:0;background:transparent;opacity:0;transition:opacity .5s}
-.vt{writing-mode:vertical-rl;text-orientation:upright;font-weight:1000;letter-spacing:.25em;font-size:clamp(22px,4.8vw,48px)}
+.v-banner{display:flex;align-items:center;justify-content:center;border:0;background:transparent;opacity:0;transform:translateY(16px) scale(.9);transition:opacity 1s ease,transform .9s cubic-bezier(.2,.8,.2,1)}
+.vt{writing-mode:vertical-rl;text-orientation:upright;font-weight:1000;letter-spacing:.28em;font-size:clamp(22px,4.8vw,50px)}
 .vt-left{color:var(--green-dark)}.vt-right{color:var(--orange)}
 </style>
 </head>
@@ -150,7 +152,7 @@ function hideBanners(){ const l=document.getElementById('bnL'),r=document.getEle
 function showBanners(){ if(document.getElementById('bnL'))return;
   const l=document.createElement('div'); l.id='bnL'; l.className='v-banner'; l.style.gridArea='left'; l.innerHTML='<div class="vt vt-left">數字教育</div>';
   const r=document.createElement('div'); r.id='bnR'; r.className='v-banner'; r.style.gridArea='right'; r.innerHTML='<div class="vt vt-right">科創未來</div>';
-  appEl.appendChild(l); appEl.appendChild(r); requestAnimationFrame(()=>{ l.style.opacity=1; r.style.opacity=1; });
+  appEl.appendChild(l); appEl.appendChild(r); requestAnimationFrame(()=>{ l.style.opacity=1; r.style.opacity=1; l.style.transform='none'; r.style.transform='none'; });
 }
 function resetTeaching(){ clearWinLettersDOM(); teachingMode=true; stepIndex=0; modeBtn.textContent="退出教學模式"; restartBtn.style.display="none"; swapBtn.style.display="none"; resetCommon(); current="blue"; hideBanners(); showNextHint(); }
 function resetPVP(start="blue"){ clearWinLettersDOM(); teachingMode=false; modeBtn.textContent="開始教學模式"; restartBtn.style.display=""; swapBtn.style.display=""; resetCommon(); current=start; hideBanners(); render(); hint("PVP 開始，先手："+(current==="blue"?"綠":"橙")); }
@@ -213,7 +215,7 @@ function ghostMove(from,toEl,player,size,dur=650){
     g.style.transitionDuration=dur+"ms"; document.body.appendChild(g);
     g.getBoundingClientRect();
     requestAnimationFrame(()=>{ const B2=getCenter(toEl); if(B2){ g.style.left=B2.x+"px"; g.style.top=B2.y+"px"; } });
-    const end=Date.now()+dur+30; ghostAnim={el:g,toEl,endTime:end};
+    const end=Date.now()+dur+30; ghostAnim={el:g,toEl,endTime=end};
     setTimeout(()=>{ ghostAnim=null; g.remove(); res(); }, dur+40);
   });
 }
