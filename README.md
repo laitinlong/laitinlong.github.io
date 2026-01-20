@@ -22,7 +22,7 @@
 .tray-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .tray-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:8px;cursor:pointer;border-radius:12px;border:1px solid #ddd;background:#fafafa;transition:.15s;min-height:92px;text-align:center}
 .tray-btn:hover{background:#f5f5f5;transform:translateY(-1px)}
-.tray-btn.active{border-color:#888;box-shadow:0 4px 12px rgba(0,0,0,.08);background:#fff}
+.tray-btn.active{border-color:#888;box-shadow:0 4px 12px rgba(0,0,0,.08);背景:#fff}
 .mini{position:relative;border-radius:50%;width:40px;height:40px;box-shadow:0 3px 8px rgba(0,0,0,.15),inset 0 0 0 3px rgba(255,255,255,.65)}
 .mini.size-1{width:28px;height:28px}.mini.size-2{width:34px;height:34px}.mini.size-3{width:40px;height:40px}
 .mini.blue{background:var(--green);border:2px solid var(--green-dark)}.mini.orange{background:var(--orange);border:2px solid #d36a00}
@@ -355,11 +355,16 @@ function startWinSequence(){
 function toYCHAndBanners(){
   document.body.classList.remove('win-spotlight');
 
-  /* 清走非勝利線上的橙色棋（5秒後） */
+  /* 5秒後：清走非勝利線頂層橙子 + 其下方一枚綠子（如存在） */
   const winSet=new Set(winLineIdx);
   for(let i=0;i<9;i++){
-    if(!winSet.has(i)&&board[i].length){
-      board[i]=board[i].filter(p=>p.player!=='orange');
+    if(!winSet.has(i) && board[i].length){
+      const t=topPiece(i);
+      if(t && t.player==='orange'){
+        board[i].pop(); // 橙
+        const t2=topPiece(i);
+        if(t2 && t2.player==='blue') board[i].pop(); // 綠（被蓋住嗰隻）
+      }
     }
   }
   render();
