@@ -404,4 +404,21 @@ layoutArrowLayer(); resetTeaching();
 })();
 </script>
 </body>
+
+place.wav</audio>
+move.wav</audio>
+
+const soundPlace = document.getElementById("soundPlace");
+const soundMove = document.getElementById("soundMove");
+
+function playPlaceSound() {
+  soundPlace.currentTime = 0;
+  soundPlace.play();
+}
+
+function playMoveSound() {
+  soundMove.currentTime = 0;
+  soundMove.play();
+}
+
 </html>
