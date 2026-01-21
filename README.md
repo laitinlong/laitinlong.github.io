@@ -50,8 +50,7 @@
 .orange-piece::before,.orange-piece::after{content:"";position:absolute;left:50%;top:50%;width:76%;height:12%;background:#d36a00;border-radius:8px;transform-origin:center;box-shadow:0 0 0 4px rgba(255,255,255,.95),0 1px 2px rgba(0,0,0,.2)}
 .orange-piece::before{transform:translate(-50%,-50%) rotate(45deg)}.orange-piece::after{transform:translate(-50%,-50%) rotate(-45deg)}
 .moving-piece{box-shadow:0 0 0 4px rgba(67,160,71,.85),0 0 14px 2px rgba(67,160,71,.45),inset 0 0 0 3px rgba(255,255,255,.7);animation:movingPulse 1.1s ease-in-out infinite}
-@keyframes movingPulse{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.03)}100%{transform:translate(-50%,-50%) scale(1)}
-}
+@keyframes movingPulse{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.03)}100%{transform:translate(-50%,-50%) scale(1)}}
 .win-spotlight .board .piece{opacity:.28;filter:grayscale(.1) saturate(.8)}
 .win-spotlight .board .win-pulse{opacity:1;filter:none}
 .win-pulse{box-shadow:0 0 0 6px rgba(67,160,71,.95),0 0 28px 8px rgba(67,160,71,.55),inset 0 0 0 3px rgba(255,255,255,.9);animation:winGlow .85s ease-in-out infinite}
@@ -114,11 +113,11 @@
 
 <script>
 (function(){
-const sizeNames={1:"小",2:"中",3:"大"},winLines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]],WIN_DELAY=5000,CONFIRM_DELAY=2000;
+const sizeNames={1:"小",2:"中",3:"大"},winLines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]],WIN_DELAY=5000;
 const boardEl=document.getElementById("board"),turnDot=document.getElementById("turnDot"),turnText=document.getElementById("turnText");
 const restartBtn=document.getElementById("restartBtn"),swapBtn=document.getElementById("swapBtn"),modeBtn=document.getElementById("modeBtn");
 const arrowLayer=document.getElementById('arrowLayer'),arrowPath=document.getElementById('arrowPath'),msgEl=document.getElementById('msg');
-const trayBlue=document.getElementById('trayBlue');
+const appEl=document.querySelector('.app'),trayBlue=document.getElementById('trayBlue'),trayOrange=document.getElementById('trayOrange');
 
 let board,counts,current,selectedSize,gameOver;
 let teachingMode=true,stepIndex=0,movingFromIndex=null,pvpSelectedFrom=null;
@@ -162,13 +161,21 @@ swapBtn.addEventListener("click",()=>{ if(gameOver) return; if(!teachingMode){ c
 modeBtn.addEventListener("click",()=>{ teachingMode?resetPVP("blue"):resetTeaching(); });
 
 document.querySelectorAll(".tray-btn").forEach(btn=>{
-  btn.addEventListener("click",()=>{ if(teachingMode) return; if(gameOver) return;
+  btn.addEventListener("click",()=>{
+    if(gameOver) return;
     const player=btn.dataset.player,size=Number(btn.dataset.size);
-    if(player!==current){ hint("唔到你用對家托盤"); return; }
-    if(counts[player][size]<=0){ hint("此大小已用完"); return; }
-    if(pvpSelectedFrom!==null){ const el=boardEl.children[pvpSelectedFrom]; el&&el.classList.remove('source-cue'); pvpSelectedFrom=null; }
-    if(selectedSize===size){ selectedSize=null; clearTrayGlow(); hint("已取消選擇"); return; }
-    selectedSize=size; clearTrayGlow(); btn.classList.add("glow-green","active"); hint("已選："+(current==="blue"?"綠":"橙")+"「"+sizeNames[size]+"」");
+    if(teachingMode){
+      const mv=SCRIPT[stepIndex]; if(!mv||mv.actor!=='blue'||mv.type!=='place') return;
+      if(size!==mv.size||counts.blue[size]<=0) return;
+      if(selectedSize===size){ selectedSize=null; clearTrayGlow(); return; }
+      selectedSize=size; showNextHint();
+    }else{
+      if(player!==current){ hint("唔到你用對家托盤"); return; }
+      if(counts[player][size]<=0){ hint("此大小已用完"); return; }
+      if(pvpSelectedFrom!==null){ const el=boardEl.children[pvpSelectedFrom]; el&&el.classList.remove('source-cue'); pvpSelectedFrom=null; }
+      if(selectedSize===size){ selectedSize=null; clearTrayGlow(); hint("已取消選擇"); return; }
+      selectedSize=size; clearTrayGlow(); btn.classList.add("glow-green","active"); hint("已選："+(current==="blue"?"綠":"橙")+"「"+sizeNames[size]+"」");
+    }
   });
 });
 
@@ -243,64 +250,59 @@ function render(){
 }
 function clearHints(){Array.from(boardEl.children).forEach(c=>c.classList.remove("hint","hint-move","source-cue"))}
 function clearTrayGlow(){document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("glow-green","active"))}
+function highlightTray(player,size){clearTrayGlow();document.querySelectorAll(".tray-btn").forEach(b=>{if(b.dataset.player===player&&Number(b.dataset.size)===size)b.classList.add("glow-green","active")})}
 function switchTurn(){current=(current==="blue")?"orange":"blue";render()}
-
 function showNextHint(keep=false){
   clearHints(); clearTrayGlow(); movingFromIndex=null;
   if(!teachingMode||gameOver||stepIndex>=SCRIPT.length){render();clearArrow();return}
   const mv=SCRIPT[stepIndex]; current=mv.actor; render();
-  if(mv.actor==='blue'){ clearArrow(); hint("按棋盤任意位置繼續"); return; }
   if(mv.type==='place'){
+    highlightTray(mv.actor,mv.size);
     const dst=boardEl.children[mv.to]; dst&&dst.classList.add("hint");
-    const trayBtn=[...document.querySelectorAll('#trayOrange .tray-btn')].find(b=>Number(b.dataset.size)===mv.size);
-    const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn; drawArrow(dot||trayBtn,dst,'place');
+    if(mv.actor==='orange'){
+      const trayBtn=[...document.querySelectorAll('#trayOrange .tray-btn')].find(b=>Number(b.dataset.size)===mv.size);
+      const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn; drawArrow(dot||trayBtn,dst,'place');
+    }else{
+      clearArrow();
+    }
+    if(mv.actor==='blue'&&!keep)selectedSize=mv.size;
   }else{
     const src=boardEl.children[mv.from],dst=boardEl.children[mv.to];
     src&&src.classList.add("source-cue"); dst&&dst.classList.add("hint-move");
-    drawArrow(src,dst,'move');
+    movingFromIndex=mv.from; render();
+    if(mv.actor==='orange'){ drawArrow(src,dst,'move'); } else { clearArrow(); }
   }
 }
-
-function onCellClick(){
+function onCellClick(index){
   if(gameOver) return;
   if(teachingMode){
     const mv=SCRIPT[stepIndex]; if(!mv||mv.actor!=='blue') return;
-    if(uiLocked) return;
-    clearHints(); clearArrow();
     if(mv.type==='place'){
-      const dst=boardEl.children[mv.to]; dst&&dst.classList.add("hint");
-      hint("2 秒後放置");
+      if(selectedSize!==mv.size||index!==mv.to||!canPlace('blue',mv.size,index)){hint("請按提示落子");return}
+      const trayBtn=[...document.querySelectorAll('#trayBlue .tray-btn')].find(b=>Number(b.dataset.size)===mv.size);
+      const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn; const dst=boardEl.children[mv.to];
       lock();
-      setTimeout(()=>{
-        const trayBtn=document.querySelector(`#trayBlue .tray-btn[data-size="${mv.size}"]`);
-        const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn; const dstEl=boardEl.children[mv.to];
-        ghostMove(dot,dstEl,'blue',mv.size,600).then(()=>{
-          board[mv.to].push({player:'blue',size:mv.size});
-          counts.blue[mv.size]--; stepIndex++; clearHints(); clearTrayGlow(); clearArrow();
-          if(checkWin('blue')){ startWinSequence(); unlock(); return; }
-          current='orange'; render(); setTimeout(runAIMoveIfAny,450);
-        });
-      },CONFIRM_DELAY);
+      ghostMove(dot,dst,'blue',mv.size,600).then(()=>{
+        board[mv.to].push({player:'blue',size:mv.size});
+        counts.blue[mv.size]--; stepIndex++; clearTrayGlow(); clearHints(); clearArrow();
+        if(checkWin('blue')){ startWinSequence(); unlock(); return; }
+        current='orange'; render(); setTimeout(runAIMoveIfAny,450);
+      });
     }else{
-      const src=boardEl.children[mv.from],dst=boardEl.children[mv.to];
-      src&&src.classList.add("source-cue"); dst&&dst.classList.add("hint-move");
-      hint("2 秒後移動");
-      const pos=getCenter(src); lock();
-      setTimeout(()=>{
-        board[mv.from].pop(); render();
-        ghostMove({x:pos.x,y:pos.y},dst,'blue',mv.size,650).then(()=>{
-          board[mv.to].push({player:'blue',size:mv.size});
-          stepIndex++; movingFromIndex=null; clearHints(); clearArrow();
-          if(checkWin('blue')){ startWinSequence(); unlock(); return; }
-          current='orange'; render(); setTimeout(runAIMoveIfAny,450);
-        });
-      },CONFIRM_DELAY);
+      if(index!==mv.to||!canMove('blue',mv.size,mv.from,mv.to)){hint("請按提示移動");return}
+      const src=boardEl.children[mv.from],dst=boardEl.children[mv.to],pos=getCenter(src);
+      lock(); board[mv.from].pop(); render();
+      ghostMove({x:pos.x,y:pos.y},dst,'blue',mv.size,650).then(()=>{
+        board[mv.to].push({player:'blue',size:mv.size});
+        stepIndex++; movingFromIndex=null; clearHints(); clearArrow();
+        if(checkWin('blue')){ startWinSequence(); unlock(); return; }
+        current='orange'; render(); setTimeout(runAIMoveIfAny,450);
+      });
     }
-    return;
+  }else{
+    handlePVP(index);
   }
-  handlePVP(...arguments);
 }
-
 function runAIMoveIfAny(){
   if(gameOver||stepIndex>=SCRIPT.length){showNextHint();unlock();return}
   const mv=SCRIPT[stepIndex]; if(mv.actor!=='orange'){showNextHint();unlock();return}
@@ -325,7 +327,6 @@ function runAIMoveIfAny(){
     });
   }
 }
-
 function startWinSequence(){
   gameOver=true; clearArrow(); clearHints(); clearTrayGlow();
   winLineIdx=getWinningLine('blue'); if(!winLineIdx) return;
@@ -359,7 +360,6 @@ function toYCHAndBanners(){
     setTimeout(()=>{ overlay.innerHTML=""; const st=document.createElement('span'); st.className='win-letter-still'; st.textContent=letters[idx]; overlay.appendChild(st); }, 700+idx*180);
   });
 }
-
 function handlePVP(index){
   if(gameOver) return;
   const tp=topPiece(index);
@@ -382,7 +382,6 @@ function handlePVP(index){
   if(checkWin(current)){ alert((current==='blue'?'綠':'橙')+'方勝'); gameOver=true; return; }
   switchTurn();
 }
-
 let uiLocked=false;
 function lock(){ uiLocked=true; document.body.style.pointerEvents='none'; }
 function unlock(){ uiLocked=false; document.body.style.pointerEvents='auto'; }
