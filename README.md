@@ -67,9 +67,7 @@
 .ghost{position:fixed;left:0;top:0;transform:translate(-50%,-50%);transition:left .65s ease,top .65s ease;pointer-events:none;z-index:9000;will-change:left,top}
 .msg{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:#111;color:#fff;padding:8px 12px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s}
 .msg.show{opacity:.9}
-/* 行動裝置按壓回饋 */
 .cell:active{transform:scale(0.985)}.tray-btn:active{transform:translateY(0);box-shadow:0 1px 6px rgba(0,0,0,.08)}
-/* 減少動效（無障礙） */
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}.arrow-path{animation:none!important}.moving-piece,.win-pulse{animation:none!important}}
 </style>
 </head>
@@ -261,13 +259,18 @@ function showNextHint(keep=false){
   if(mv.type==='place'){
     highlightTray(mv.actor,mv.size);
     const dst=boardEl.children[mv.to]; dst&&dst.classList.add("hint");
-    const trayBtn=[...document.querySelectorAll(`#tray${mv.actor==='blue'?'Blue':'Orange'} .tray-btn`)].find(b=>Number(b.dataset.size)===mv.size);
-    const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn; drawArrow(dot||trayBtn,dst,'place');
+    if(mv.actor==='orange'){
+      const trayBtn=[...document.querySelectorAll('#trayOrange .tray-btn')].find(b=>Number(b.dataset.size)===mv.size);
+      const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn; drawArrow(dot||trayBtn,dst,'place');
+    }else{
+      clearArrow();
+    }
     if(mv.actor==='blue'&&!keep)selectedSize=mv.size;
   }else{
     const src=boardEl.children[mv.from],dst=boardEl.children[mv.to];
     src&&src.classList.add("source-cue"); dst&&dst.classList.add("hint-move");
-    movingFromIndex=mv.from; render(); drawArrow(src,dst,'move');
+    movingFromIndex=mv.from; render();
+    if(mv.actor==='orange'){ drawArrow(src,dst,'move'); } else { clearArrow(); }
   }
 }
 function onCellClick(index){
@@ -356,7 +359,6 @@ function toYCHAndBanners(){
     s.style.animationDelay=(idx*180)+'ms'; overlay.appendChild(s);
     setTimeout(()=>{ overlay.innerHTML=""; const st=document.createElement('span'); st.className='win-letter-still'; st.textContent=letters[idx]; overlay.appendChild(st); }, 700+idx*180);
   });
-  // 不再隱藏托盤、不再顯示任何左右直幅
 }
 function handlePVP(index){
   if(gameOver) return;
@@ -404,3 +406,4 @@ layoutArrowLayer(); resetTeaching();
 </script>
 </body>
 </html>
+``
