@@ -252,7 +252,6 @@ function showNextHint(keep=false){
   
 if(mv.actor==='blue'){
   clearArrow();
--  hint("按棋盤任意位置繼續");
   return;
 }
 
