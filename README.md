@@ -249,7 +249,7 @@ function showNextHint(keep=false){
   clearHints(); clearTrayGlow(); movingFromIndex=null;
   if(!teachingMode||gameOver||stepIndex>=SCRIPT.length){render();clearArrow();return}
   const mv=SCRIPT[stepIndex]; current=mv.actor; render();
-  if(mv.actor==='blue'){ clearArrow(); hint(); return; }
+  if(mv.actor==='blue'){ clearArrow(); hint("按棋盤任意位置繼續"); return; }
   if(mv.type==='place'){
     const dst=boardEl.children[mv.to]; dst&&dst.classList.add("hint");
     const trayBtn=[...document.querySelectorAll('#trayOrange .tray-btn')].find(b=>Number(b.dataset.size)===mv.size);
@@ -269,7 +269,7 @@ function onCellClick(){
     clearHints(); clearArrow();
     if(mv.type==='place'){
       const dst=boardEl.children[mv.to]; dst&&dst.classList.add("hint");
-      hint();
+      hint("2 秒後放置");
       lock();
       setTimeout(()=>{
         const trayBtn=document.querySelector(`#trayBlue .tray-btn[data-size="${mv.size}"]`);
@@ -284,7 +284,7 @@ function onCellClick(){
     }else{
       const src=boardEl.children[mv.from],dst=boardEl.children[mv.to];
       src&&src.classList.add("source-cue"); dst&&dst.classList.add("hint-move");
-      hint();
+      hint("2 秒後移動");
       const pos=getCenter(src); lock();
       setTimeout(()=>{
         board[mv.from].pop(); render();
