@@ -121,6 +121,10 @@ const arrowLayer=document.getElementById('arrowLayer'),arrowPath=document.getEle
 const trayBlue=document.getElementById('trayBlue');
 
 let board,counts,current,selectedSize,gameOver;
+  
+const sfxPlace = document.getElementById("sfxPlace");
+const sfxMove  = document.getElementById("sfxMove");
+
 let teachingMode=true,stepIndex=0,movingFromIndex=null,pvpSelectedFrom=null;
 let winLetters={},currentArrow=null,ghostAnim=null,winPulse=new Set(),winLineIdx=null;
 
@@ -280,6 +284,7 @@ function onCellClick(){
         const trayBtn=document.querySelector(`#trayBlue .tray-btn[data-size="${mv.size}"]`);
         const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn; const dstEl=boardEl.children[mv.to];
         ghostMove(dot,dstEl,'blue',mv.size,600).then(()=>{
+          sfxPlace?.play().catch(()=>{});
           board[mv.to].push({player:'blue',size:mv.size});
           counts.blue[mv.size]--; stepIndex++; clearHints(); clearTrayGlow(); clearArrow();
           if(checkWin('blue')){ startWinSequence(); unlock(); return; }
@@ -314,6 +319,7 @@ function runAIMoveIfAny(){
     const trayBtn=[...document.querySelectorAll('#trayOrange .tray-btn')].find(b=>Number(b.dataset.size)===mv.size);
     const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn; const dst=boardEl.children[mv.to];
     ghostMove(dot,dst,'orange',mv.size,600).then(()=>{
+      sfxPlace?.play().catch(()=>{});
       board[mv.to].push({player:'orange',size:mv.size});
       counts.orange[mv.size]--; stepIndex++; clearTrayGlow(); clearHints(); clearArrow();
       if(checkWin('orange')){ gameOver=true; render(); alert("橙方勝"); unlock(); return; }
@@ -409,6 +415,10 @@ const ro=new ResizeObserver(viewportSync);
 ro.observe(document.documentElement); ro.observe(document.body); ro.observe(boardEl);
 layoutArrowLayer(); resetTeaching();
 })();
+
+
++ sound/place.mp3</audio>
++ sound/move.mp3</audio>
 </script>
 </body>
 </html>
