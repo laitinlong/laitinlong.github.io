@@ -43,15 +43,14 @@
 @keyframes targetPulse{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
 .cell.source-cue{box-shadow:inset 0 0 0 3px var(--hint),0 0 0 6px rgba(67,160,71,.18)}
 .piece{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,.18),inset 0 0 0 3px rgba(255,255,255,.65);transition:transform .18s ease,filter .18s ease,box-shadow .18s ease,opacity .18s ease}
-.size-1{width:55%;height:55%}.size-2{width:72%;height:72%}.size-3{width:95%;height:95%}
+.size-1{width:55%;height:55%}.size-2{width:72%;height:72%}.size-3{width:95%}
 .blue-piece{background:var(--green);border:2px solid var(--green-dark)}
 .orange-piece{background:var(--orange);border:2px solid #d36a00}
 .blue-piece::before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:72%;height:72%;border-radius:50%;box-shadow:0 0 0 5px rgba(255,255,255,.95),inset 0 0 0 7px var(--green-dark)}
 .orange-piece::before,.orange-piece::after{content:"";position:absolute;left:50%;top:50%;width:76%;height:12%;background:#d36a00;border-radius:8px;transform-origin:center;box-shadow:0 0 0 4px rgba(255,255,255,.95),0 1px 2px rgba(0,0,0,.2)}
 .orange-piece::before{transform:translate(-50%,-50%) rotate(45deg)}.orange-piece::after{transform:translate(-50%,-50%) rotate(-45deg)}
 .moving-piece{box-shadow:0 0 0 4px rgba(67,160,71,.85),0 0 14px 2px rgba(67,160,71,.45),inset 0 0 0 3px rgba(255,255,255,.7);animation:movingPulse 1.1s ease-in-out infinite}
-@keyframes movingPulse{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.03)}100%{transform:translate(-50%,-50%) scale(1)}
-}
+@keyframes movingPulse{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.03)}100%{transform:translate(-50%,-50%) scale(1)}}
 .win-spotlight .board .piece{opacity:.28;filter:grayscale(.1) saturate(.8)}
 .win-spotlight .board .win-pulse{opacity:1;filter:none}
 .win-pulse{box-shadow:0 0 0 6px rgba(67,160,71,.95),0 0 28px 8px rgba(67,160,71,.55),inset 0 0 0 3px rgba(255,255,255,.9);animation:winGlow .85s ease-in-out infinite}
@@ -118,7 +117,6 @@ const sizeNames={1:"小",2:"中",3:"大"},winLines=[[0,1,2],[3,4,5],[6,7,8],[0,3
 const boardEl=document.getElementById("board"),turnDot=document.getElementById("turnDot"),turnText=document.getElementById("turnText");
 const restartBtn=document.getElementById("restartBtn"),swapBtn=document.getElementById("swapBtn"),modeBtn=document.getElementById("modeBtn");
 const arrowLayer=document.getElementById('arrowLayer'),arrowPath=document.getElementById('arrowPath'),msgEl=document.getElementById('msg');
-const trayBlue=document.getElementById('trayBlue');
 
 let board,counts,current,selectedSize,gameOver;
 let teachingMode=true,stepIndex=0,movingFromIndex=null,pvpSelectedFrom=null;
@@ -154,7 +152,7 @@ if(!boardEl.children.length){
 function resetCommon(){ board=Array.from({length:9},()=>[]); counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}}; selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null; currentArrow=null; clearArrow(); winPulse.clear(); winLineIdx=null; render(); clearHints(); clearTrayGlow(); }
 function clearWinLettersDOM(){ Array.from(boardEl.children).forEach(c=>{ const ov=c.querySelector('.cell-overlay'); if(ov) ov.innerHTML=""; }); winLetters={}; }
 
-function resetTeaching(){ clearWinLettersDOM(); teachingMode=true; stepIndex=0; modeBtn.textContent="退出教學模式"; restartBtn.style.display="none"; swapBtn.style.display="none"; resetCommon(); current="blue"; render(); showNextHint(); }
+function resetTeaching(){ clearWinLettersDOM(); teachingMode=true; stepIndex=0; modeBtn.textContent="退出教學模式"; restartBtn.style.display="none"; swapBtn.style.display="none"; resetCommon(); current="blue"; render(); msgEl.classList.remove('show'); msgEl.textContent=""; showNextHint(); }
 function resetPVP(start="blue"){ clearWinLettersDOM(); teachingMode=false; modeBtn.textContent="開始教學模式"; restartBtn.style.display=""; swapBtn.style.display=""; resetCommon(); current=start; render(); hint("PVP 開始，先手："+(current==="blue"?"綠":"橙")); }
 
 restartBtn.addEventListener("click",()=>{ if(gameOver) return; if(!teachingMode) resetPVP("blue"); });
@@ -162,7 +160,7 @@ swapBtn.addEventListener("click",()=>{ if(gameOver) return; if(!teachingMode){ c
 modeBtn.addEventListener("click",()=>{ teachingMode?resetPVP("blue"):resetTeaching(); });
 
 document.querySelectorAll(".tray-btn").forEach(btn=>{
-  btn.addEventListener("click",()=>{ if(teachingMode) return; if(gameOver) return;
+  btn.addEventListener("click",()=>{ if(teachingMode||gameOver) return;
     const player=btn.dataset.player,size=Number(btn.dataset.size);
     if(player!==current){ hint("唔到你用對家托盤"); return; }
     if(counts[player][size]<=0){ hint("此大小已用完"); return; }
@@ -245,11 +243,11 @@ function clearHints(){Array.from(boardEl.children).forEach(c=>c.classList.remove
 function clearTrayGlow(){document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("glow-green","active"))}
 function switchTurn(){current=(current==="blue")?"orange":"blue";render()}
 
-function showNextHint(keep=false){
+function showNextHint(){
   clearHints(); clearTrayGlow(); movingFromIndex=null;
   if(!teachingMode||gameOver||stepIndex>=SCRIPT.length){render();clearArrow();return}
   const mv=SCRIPT[stepIndex]; current=mv.actor; render();
-  if(mv.actor==='blue'){ clearArrow(); hint("按棋盤任意位置繼續"); return; }
+  if(mv.actor==='blue'){ clearArrow(); return; }
   if(mv.type==='place'){
     const dst=boardEl.children[mv.to]; dst&&dst.classList.add("hint");
     const trayBtn=[...document.querySelectorAll('#trayOrange .tray-btn')].find(b=>Number(b.dataset.size)===mv.size);
@@ -269,7 +267,6 @@ function onCellClick(){
     clearHints(); clearArrow();
     if(mv.type==='place'){
       const dst=boardEl.children[mv.to]; dst&&dst.classList.add("hint");
-      hint("2 秒後放置");
       lock();
       setTimeout(()=>{
         const trayBtn=document.querySelector(`#trayBlue .tray-btn[data-size="${mv.size}"]`);
@@ -284,7 +281,6 @@ function onCellClick(){
     }else{
       const src=boardEl.children[mv.from],dst=boardEl.children[mv.to];
       src&&src.classList.add("source-cue"); dst&&dst.classList.add("hint-move");
-      hint("2 秒後移動");
       const pos=getCenter(src); lock();
       setTimeout(()=>{
         board[mv.from].pop(); render();
@@ -304,7 +300,7 @@ function onCellClick(){
 function runAIMoveIfAny(){
   if(gameOver||stepIndex>=SCRIPT.length){showNextHint();unlock();return}
   const mv=SCRIPT[stepIndex]; if(mv.actor!=='orange'){showNextHint();unlock();return}
-  showNextHint(true);
+  showNextHint();
   if(mv.type==='place'){
     const trayBtn=[...document.querySelectorAll('#trayOrange .tray-btn')].find(b=>Number(b.dataset.size)===mv.size);
     const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn; const dst=boardEl.children[mv.to];
@@ -386,7 +382,7 @@ function handlePVP(index){
 let uiLocked=false;
 function lock(){ uiLocked=true; document.body.style.pointerEvents='none'; }
 function unlock(){ uiLocked=false; document.body.style.pointerEvents='auto'; }
-function hint(t){ msgEl.textContent=t; msgEl.classList.add('show'); clearTimeout(hint._t); hint._t=setTimeout(()=>msgEl.classList.remove('show'),1400); }
+function hint(t){ if(teachingMode) return; msgEl.textContent=t; msgEl.classList.add('show'); clearTimeout(hint._t); hint._t=setTimeout(()=>msgEl.classList.remove('show'),1400); }
 function redrawArrowIfAny(){ if(!currentArrow) return; const {fromEl,toEl,kind}=currentArrow; drawArrow(fromEl,toEl,kind); }
 function followGhostDuringAnim(){
   if(!ghostAnim) return;
