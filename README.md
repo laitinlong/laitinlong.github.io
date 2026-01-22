@@ -125,10 +125,7 @@
 
 <script>
 (function(){
-const sizeNames={1:"小",2:"中",3:"大"},winLines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]],
-      WIN_DELAY=5000,
-      CONFIRM_DELAY=1000; // ←←← 已把教學模式的延遲改為 1 秒
-
+const sizeNames={1:"小",2:"中",3:"大"},winLines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]],WIN_DELAY=3000,CONFIRM_DELAY=1000;
 const boardEl=document.getElementById("board"),turnDot=document.getElementById("turnDot"),turnText=document.getElementById("turnText");
 const restartBtn=document.getElementById("restartBtn"),swapBtn=document.getElementById("swapBtn"),modeBtn=document.getElementById("modeBtn");
 const arrowLayer=document.getElementById('arrowLayer'),arrowPath=document.getElementById('arrowPath'),msgEl=document.getElementById('msg');
@@ -273,7 +270,7 @@ const audio = {
     const osc=this.ctx.createOscillator(); osc.type=type; osc.frequency.setValueAtTime(freqStart, time);
     osc.frequency.exponentialRampToValueAtTime(Math.max(1,freqEnd), time + dur*0.9);
     const g=this.ctx.createGain(); g.gain.value=0.0;
-    const release=this.applyADSR(g, time, {a=0.008,d=0.06,s=0.0,r=0.05,peak:gain});
+    const release=this.applyADSR(g, time, {a:0.008,d:0.06,s:0.0,r:0.05,peak:gain});
     const hasPanner='createStereoPanner' in this.ctx; const p=hasPanner?this.ctx.createStereoPanner():null;
     if(p){ p.pan.value=pan; osc.connect(g).connect(p); this.toBus(p); }
     else{ osc.connect(g); this.toBus(g); }
@@ -283,7 +280,7 @@ const audio = {
   chord(freqs, {time=this.now(), dur=0.22, pan=0, gain=0.6, type='square'}={}){
     if(!this.ctx) return;
     const g=this.ctx.createGain(); g.gain.value=0.0;
-    const release=this.applyADSR(g, time, {a=0.01,d=0.08,s=0.15,r=0.08,peak:gain});
+    const release=this.applyADSR(g, time, {a:0.01,d:0.08,s:0.15,r:0.08,peak:gain});
     const hasPanner='createStereoPanner' in this.ctx; const p=hasPanner?this.ctx.createStereoPanner():null;
     const lp=this.ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=3600;
     const oscs=[];
@@ -378,7 +375,7 @@ const SCRIPT=[
   {actor:'blue',type:'move',size:3,from:4,to:2},
   {actor:'orange',type:'place',size:3,to:4},
   {actor:'blue',type:'place',size:1,to:0},
-  {actor:'orange',type:'move',size:3',from:8,to:0},
+  {actor:'orange',type:'move',size:3,from:8,to:0},
   {actor:'blue',type:'place',size:2,to:8},
   {actor:'orange',type:'move',size:3,from:4,to:8},
   {actor:'blue',type:'place',size:2,to:4}
@@ -682,4 +679,3 @@ window.addEventListener('keydown', unlockAudioOnce, {once:true});
 </script>
 </body>
 </html>
-``
