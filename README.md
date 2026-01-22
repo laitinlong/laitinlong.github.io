@@ -70,7 +70,7 @@
 .msg.show{opacity:.9}
 .cell:active{transform:scale(0.985)}.tray-btn:active{transform:translateY(0);box-shadow:0 1px 6px rgba(0,0,0,.08)}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}.arrow-path{animation:none!important}.moving-piece,.win-pulse{animation:none!important}}
-/* －－－－ 新增：音效控制（樣式） －－－－ */
+/* －－－－ 音效控制（樣式） －－－－ */
 .sound-wrap{display:flex;align-items:center;gap:8px}
 .sound-label{font-size:14px;font-weight:700}
 .volume{width:120px}
@@ -93,7 +93,7 @@
       <button id="swapBtn" class="btn" style="display:none;">換邊起手</button>
       <button id="modeBtn" class="btn">退出教學模式</button>
 
-      <!-- －－－－ 新增：音效控制 UI（只在教學模式有效） －－－－ -->
+      <!-- 音效控制 UI（只在教學模式有效） -->
       <div class="sound-wrap">
         <button id="soundToggleBtn" class="btn" aria-pressed="true" title="切換教學模式音效">🔊 音效：開</button>
         <label class="sound-label" for="volumeRange" title="音量（僅教學模式）">音量</label>
@@ -130,7 +130,6 @@ const boardEl=document.getElementById("board"),turnDot=document.getElementById("
 const restartBtn=document.getElementById("restartBtn"),swapBtn=document.getElementById("swapBtn"),modeBtn=document.getElementById("modeBtn");
 const arrowLayer=document.getElementById('arrowLayer'),arrowPath=document.getElementById('arrowPath'),msgEl=document.getElementById('msg');
 const trayBlue=document.getElementById('trayBlue');
-/* －－－－ 新增：音效控制 DOM －－－－ */
 const soundToggleBtn=document.getElementById('soundToggleBtn');
 const volumeRange=document.getElementById('volumeRange');
 
@@ -138,64 +137,234 @@ let board,counts,current,selectedSize,gameOver;
 let teachingMode=true,stepIndex=0,movingFromIndex=null,pvpSelectedFrom=null;
 let winLetters={},currentArrow=null,ghostAnim=null,winPulse=new Set(),winLineIdx=null;
 
-/* －－－－ 新增：簡易音效引擎（Web Audio API） －－－－ */
+/* －－－－ 音效引擎：更有趣的合成音（Web Audio API） －－－－ */
 const audio = {
-  ctx: null,
-  enabled: true,   // 教學模式下可用
-  volume: 0.7,
+  ctx:null, enabled:true, volume:0.7,
+  master:null, comp:null, delay:null, delayGain:null, limiter:null,
   ensureCtx(){
     if(!this.ctx){
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if(AC) this.ctx = new AC();
+      const AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC) return;
+      this.ctx=new AC();
+      // 建立主鏈：DynamicsCompressor -> DelayBus(可回授) -> MasterGain -> destination
+      this.master=this.ctx.createGain(); this.master.gain.value=this.volume;
+      this.comp=this.ctx.createDynamicsCompressor();
+      this.comp.threshold.setValueAtTime(-22,this.ctx.currentTime);
+      this.comp.knee.setValueAtTime(30,this.ctx.currentTime);
+      this.comp.ratio.setValueAtTime(6,this.ctx.currentTime);
+      this.comp.attack.setValueAtTime(0.003,this.ctx.currentTime);
+      this.comp.release.setValueAtTime(0.12,this.ctx.currentTime);
+
+      this.delay=this.ctx.createDelay(0.6);
+      this.delay.delayTime.value=0.18;
+      this.delayGain=this.ctx.createGain(); this.delayGain.gain.value=0.18;
+      this.delay.connect(this.delayGain).connect(this.delay);
+      // 乾濕混音
+      const delayOut=this.ctx.createGain(); delayOut.gain.value=0.22;
+      this.delay.connect(delayOut);
+
+      // 輕微限制器（再一個壓縮）
+      this.limiter=this.ctx.createDynamicsCompressor();
+      this.limiter.threshold.setValueAtTime(-3,this.ctx.currentTime);
+      this.limiter.knee.setValueAtTime(0,this.ctx.currentTime);
+      this.limiter.ratio.setValueAtTime(20,this.ctx.currentTime);
+      this.limiter.attack.setValueAtTime(0.002,this.ctx.currentTime);
+      this.limiter.release.setValueAtTime(0.08,this.ctx.currentTime);
+
+      this.comp.connect(this.master);
+      delayOut.connect(this.master);
+      this.master.connect(this.limiter).connect(this.ctx.destination);
     }
   },
-  now(){ this.ensureCtx(); return this.ctx ? this.ctx.currentTime : 0; },
-  // 建立一次性音符
-  tone({type='sine', freq=440, start=0, dur=0.09, gain=0.5}){
-    if(!this.enabled || !this.ctx) return;
-    const t0 = this.ctx.currentTime + start;
-    const osc = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, t0);
-    // 短包絡避免噪聲
-    g.gain.setValueAtTime(0, t0);
-    g.gain.linearRampToValueAtTime(gain * this.volume, t0 + 0.01);
-    g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
-    osc.connect(g).connect(this.ctx.destination);
-    osc.start(t0);
-    osc.stop(t0 + dur + 0.01);
+  setMasterVolume(v){
+    this.volume=v;
+    if(this.master){
+      const ct=this.ctx.currentTime;
+      this.master.gain.cancelScheduledValues(ct);
+      this.master.gain.linearRampToValueAtTime(v, ct+0.05);
+    }
   },
-  // 放置音效：單擊，綠方略低音、橙方略高音；尺寸越大音高略低
+  now(){ this.ensureCtx(); return this.ctx?this.ctx.currentTime:0; },
+  // 公用：建立 ADSR 封包
+  applyADSR(g, t0, {a=0.01,d=0.08,s=0.5,r=0.06,peak=0.9}={}){
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(peak, t0 + a);
+    g.gain.linearRampToValueAtTime(s*peak, t0 + a + d);
+    return (tRelease)=>{ // 呼叫於釋放時間
+      g.gain.cancelScheduledValues(tRelease);
+      g.gain.setValueAtTime(g.gain.value, tRelease);
+      g.gain.linearRampToValueAtTime(0.0001, tRelease + r);
+    };
+  },
+  // 公用：簡單噪聲 BufferSource
+  noise(duration=0.2){
+    const len=Math.max(1,Math.floor((this.ctx.sampleRate||44100)*duration));
+    const buf=this.ctx.createBuffer(1,len,this.ctx.sampleRate);
+    const data=buf.getChannelData(0);
+    for(let i=0;i<len;i++){ data[i]=(Math.random()*2-1)*0.4; }
+    const src=this.ctx.createBufferSource(); src.buffer=buf;
+    return src;
+  },
+  // 公用：連接到主鏈（含壓縮/延遲 bus）
+  toBus(node){
+    if(!this.ctx) return;
+    node.connect(this.comp);
+    node.connect(this.delay);
+  },
+  // 效果：輕微濾波掃頻的 whoosh
+  whoosh({time=this.now(), dur=0.2, pan=0}={}){
+    if(!this.ctx) return;
+    const src=this.noise(dur);
+    const bp=this.ctx.createBiquadFilter(); bp.type='bandpass'; bp.Q.value=1.2; bp.frequency.setValueAtTime(400, time);
+    const g=this.ctx.createGain(); g.gain.value=0.0;
+    const rel=this.applyADSR(g, time, {a:0.015,d:0.09,s:0.0,r:0.07,peak:0.6});
+    const hasPanner = 'createStereoPanner' in this.ctx;
+    const p=hasPanner?this.ctx.createStereoPanner():null;
+    if(p){ p.pan.value=pan; src.connect(bp).connect(g).connect(p); this.toBus(p); }
+    else{ src.connect(bp).connect(g); this.toBus(g); }
+    // 掃頻
+    bp.frequency.linearRampToValueAtTime(2200, time + dur*0.7);
+    src.start(time); rel(time + dur*0.65); src.stop(time + dur + 0.05);
+  },
+  // 效果：敲擊感（短噪聲+高通/帶通）
+  click({time=this.now(), freq=1800}={}){
+    if(!this.ctx) return;
+    const src=this.noise(0.06);
+    const hp=this.ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.setValueAtTime(600, time);
+    const g=this.ctx.createGain(); g.gain.value=0.0;
+    const rel=this.applyADSR(g, time, {a:0.005,d:0.03,s:0.0,r:0.02,peak:0.5});
+    src.connect(hp).connect(g); this.toBus(g);
+    src.start(time); rel(time+0.04); src.stop(time+0.08);
+  },
+  // 音階工具
+  noteToFreq(note){ return 440*Math.pow(2,(note-69)/12); },
+  pickPentatonic(root, octave, steps){
+    // Major pentatonic: 0,2,4,7,9
+    const scale=[0,2,4,7,9];
+    return steps.map(s=>{
+      const degree=scale[(s%scale.length+scale.length)%scale.length];
+      const oct = octave + Math.floor(s/scale.length);
+      return root + degree + 12*oct;
+    });
+  },
+  // 合成：plucky 琶音（兩振盪+低通）
+  pluck(freq, {time=this.now(), dur=0.18, detune=0, cutoff=2200, pan=0, gain=0.8, type='triangle'}={}){
+    if(!this.ctx) return;
+    const osc1=this.ctx.createOscillator(); osc1.type=type; osc1.frequency.setValueAtTime(freq, time); osc1.detune.value=detune;
+    const osc2=this.ctx.createOscillator(); osc2.type=type; osc2.frequency.setValueAtTime(freq*1.5, time); osc2.detune.value=-detune*0.5;
+    const lp=this.ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.setValueAtTime(cutoff, time); lp.Q.value=0.8;
+    const g=this.ctx.createGain(); g.gain.value=0.0;
+    const release=this.applyADSR(g, time, {a:0.005,d:0.09,s:0.0,r:0.05,peak:gain});
+    const hasPanner='createStereoPanner' in this.ctx; const p=hasPanner?this.ctx.createStereoPanner():null;
+    if(p){ p.pan.value=pan; osc1.connect(lp); osc2.connect(lp); lp.connect(g).connect(p); this.toBus(p); }
+    else{ osc1.connect(lp); osc2.connect(lp); lp.connect(g); this.toBus(g); }
+    // 濾波器褪去，讓音頭更清晰
+    lp.frequency.exponentialRampToValueAtTime(600, time + dur*0.8);
+    osc1.start(time); osc2.start(time);
+    release(time + dur*0.75);
+    osc1.stop(time + dur + 0.05); osc2.stop(time + dur + 0.05);
+  },
+  // 合成：滑音 tone（起音 -> 下滑）
+  glide(freqStart, freqEnd, {time=this.now(), dur=0.16, pan=0, gain=0.6, type='sine'}={}){
+    if(!this.ctx) return;
+    const osc=this.ctx.createOscillator(); osc.type=type; osc.frequency.setValueAtTime(freqStart, time);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(1,freqEnd), time + dur*0.9);
+    const g=this.ctx.createGain(); g.gain.value=0.0;
+    const release=this.applyADSR(g, time, {a:0.008,d:0.06,s:0.0,r:0.05,peak:gain});
+    const hasPanner='createStereoPanner' in this.ctx; const p=hasPanner?this.ctx.createStereoPanner():null;
+    if(p){ p.pan.value=pan; osc.connect(g).connect(p); this.toBus(p); }
+    else{ osc.connect(g); this.toBus(g); }
+    osc.start(time); release(time + dur*0.8); osc.stop(time + dur + 0.05);
+  },
+  // 合成：和弦（多振盪）簡短
+  chord(freqs, {time=this.now(), dur=0.22, pan=0, gain=0.6, type='square'}={}){
+    if(!this.ctx) return;
+    const g=this.ctx.createGain(); g.gain.value=0.0;
+    const release=this.applyADSR(g, time, {a:0.01,d:0.08,s:0.15,r:0.08,peak:gain});
+    const hasPanner='createStereoPanner' in this.ctx; const p=hasPanner?this.ctx.createStereoPanner():null;
+    const lp=this.ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=3600;
+    const oscs=[];
+    freqs.forEach((f,i)=>{
+      const o=this.ctx.createOscillator(); o.type=type; o.frequency.setValueAtTime(f, time);
+      o.detune.value= (i-1)*6; oscs.push(o);
+      o.connect(lp);
+    });
+    if(p){ p.pan.value=pan; lp.connect(g).connect(p); this.toBus(p); }
+    else{ lp.connect(g); this.toBus(g); }
+    oscs.forEach(o=>o.start(time));
+    release(time + dur*0.75);
+    oscs.forEach(o=>o.stop(time + dur + 0.05));
+  },
+
+  /* 具象事件音效（教學模式用） */
   sfxPlace(player, size){
     if(!teachingMode || !this.enabled) return;
-    this.ensureCtx();
-    const base = (player==='blue') ? 680 : 760;    // 綠 vs 橙
-    const sizeOffset = {1:+60, 2:0, 3:-80}[size] || 0;
-    const freq = base + sizeOffset;
-    this.tone({type:'triangle', freq, dur:0.09, gain:0.6});
+    this.ensureCtx(); if(!this.ctx) return;
+    const t=this.now();
+    // 角色根音與音階：綠=D大調五聲；橙=A小調五聲（相異色彩）
+    const root = (player==='blue')? 62 : 57; // MIDI：D4 或 A3
+    const octave = (player==='blue')? 1 : 2;
+    // 尺寸影響音高：小→高；大→低
+    const sizeShift = ({1:+7,2:+0,3:-5})[size]||0;
+    const notes = this.pickPentatonic(root+sizeShift, octave, [0,1,2]);
+    // 小琶音（漸快），帶一點點 echo、pan
+    const pan = (player==='blue')? -0.15 : 0.15;
+    notes.forEach((n,i)=>{
+      const f=this.noteToFreq(n);
+      this.pluck(f,{time:t + i*0.055, dur:0.18 - i*0.02, pan, gain:0.72, cutoff:2600, type:'triangle'});
+    });
+    // 補一個輕 click 作落子觸地感
+    this.click({time: t + 0.03});
+    // 輕微短滑音點綴（從高往目標滑）
+    const f0 = this.noteToFreq((notes[1]||root)+12);
+    const f1 = this.noteToFreq(notes[1]||root);
+    this.glide(f0, f1, {time: t + 0.04, dur:0.12, pan, gain:0.22, type:'sine'});
   },
-  // 移動音效：兩段音（起-落），綠方較溫和，橙方明亮
   sfxMove(player, size){
     if(!teachingMode || !this.enabled) return;
-    this.ensureCtx();
-    const base = (player==='blue') ? 520 : 600;
-    const sizeOffset = {1:+70, 2:+10, 3:-60}[size] || 0;
-    const f1 = base + sizeOffset;
-    const f2 = f1 - 140;
-    this.tone({type:'sine', freq:f1, dur:0.07, gain:0.55});
-    this.tone({type:'sine', freq:f2, start:0.07, dur:0.08, gain:0.5});
+    this.ensureCtx(); if(!this.ctx) return;
+    const t=this.now();
+    // 角色基準
+    const root = (player==='blue')? 50 : 55; // D3 / G3
+    const octave = 2;
+    const pan = (player==='blue')? -0.22 : 0.22;
+    const siz = ({1:+5,2:+0,3:-5})[size]||0;
+    const seq = this.pickPentatonic(root+siz, octave, [1,3,2]); // 上→落
+    // 旋律：第一音較強，後兩音短
+    this.pluck(this.noteToFreq(seq[0]), {time:t, dur:0.16, pan, gain:0.7, cutoff:3000, type:'triangle'});
+    this.pluck(this.noteToFreq(seq[1]), {time:t+0.09, dur:0.13, pan, gain:0.55, cutoff:2400, type:'triangle'});
+    this.pluck(this.noteToFreq(seq[2]), {time:t+0.16, dur:0.12, pan, gain:0.52, cutoff:2200, type:'triangle'});
+    // 小幅 whoosh 營造移動感
+    this.whoosh({time:t+0.02, dur:0.22, pan});
+    // 結尾滑落一點
+    const fStart=this.noteToFreq(seq[0]+7);
+    const fEnd=this.noteToFreq(seq[0]-5);
+    this.glide(fStart, fEnd, {time:t+0.05, dur:0.18, pan, gain:0.28, type:'sine'});
   },
-  // 勝利音效：三音上行
   sfxWin(){
     if(!teachingMode || !this.enabled) return;
-    this.ensureCtx();
-    const seq = [660, 770, 880];
-    seq.forEach((f,i)=> this.tone({type:'square', freq:f, start:i*0.12, dur:0.09, gain:0.5}));
+    this.ensureCtx(); if(!this.ctx) return;
+    const t=this.now();
+    // 簡短三和弦（D大調）：D F# A
+    const tri=[62,66,69].map(n=>this.noteToFreq(n+12)); // 提升一個八度更亮
+    this.chord(tri,{time:t, dur:0.26, pan:0, gain:0.65, type:'square'});
+    // 上行三音收尾
+    const line=[69,71,74].map(n=>this.noteToFreq(n+12));
+    this.pluck(line[0],{time:t+0.14, dur:0.16, pan:0.05, gain:0.66, cutoff:3600});
+    this.pluck(line[1],{time:t+0.26, dur:0.14, pan:-0.05, gain:0.6, cutoff:3600});
+    this.pluck(line[2],{time:t+0.36, dur:0.14, pan:0.08, gain:0.6, cutoff:3600});
+    // 高頻亮片（噪聲+高通）
+    const sparkleT=t+0.38;
+    const src=this.noise(0.18);
+    const hp=this.ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=3200;
+    const g=this.ctx.createGain(); g.gain.value=0;
+    const rel=this.applyADSR(g, sparkleT, {a:0.005,d:0.08,s:0.0,r:0.06,peak:0.42});
+    src.connect(hp).connect(g); this.toBus(g);
+    src.start(sparkleT); rel(sparkleT+0.12); src.stop(sparkleT+0.2);
   }
 };
 
-/* －－－－ 原本教學腳本 －－－－ */
+/* －－－－ 教學腳本 －－－－ */
 const SCRIPT=[
   {actor:'blue',type:'place',size:3,to:4},
   {actor:'orange',type:'place',size:3,to:8},
@@ -233,19 +402,17 @@ restartBtn.addEventListener("click",()=>{ if(gameOver) return; if(!teachingMode)
 swapBtn.addEventListener("click",()=>{ if(gameOver) return; if(!teachingMode){ current=(current==="blue")?"orange":"blue"; resetPVP(current); hint("已換邊起手："+(current==="blue"?"綠":"橙")); }});
 modeBtn.addEventListener("click",()=>{ teachingMode?resetPVP("blue"):resetTeaching(); });
 
-/* －－－－ 新增：音效 UI 事件 －－－－ */
 soundToggleBtn.addEventListener('click',()=>{
-  audio.enabled = !audio.enabled;
+  audio.enabled=!audio.enabled;
   soundToggleBtn.setAttribute('aria-pressed', String(audio.enabled));
   soundToggleBtn.textContent = (audio.enabled ? '🔊 音效：開' : '🔇 音效：關');
-  // 若剛開啟且在教學模式，給個輕提示音
   if(audio.enabled && teachingMode){
-    try { audio.ensureCtx(); audio.tone({type:'sine', freq:660, dur:0.06, gain:0.4}); } catch(e){}
+    try{ audio.ensureCtx(); audio.pluck(880,{gain:0.25,dur:0.12}); }catch(e){}
   }
 });
-volumeRange.addEventListener('input', (e)=>{
-  const v = Math.max(0, Math.min(100, Number(e.target.value)||0));
-  audio.volume = v/100;
+volumeRange.addEventListener('input',(e)=>{
+  const v=Math.max(0,Math.min(100,Number(e.target.value)||0))/100;
+  audio.setMasterVolume(v);
 });
 
 document.querySelectorAll(".tray-btn").forEach(btn=>{
@@ -363,8 +530,7 @@ function onCellClick(){
         ghostMove(dot,dstEl,'blue',mv.size,600).then(()=>{
           board[mv.to].push({player:'blue',size:mv.size});
           counts.blue[mv.size]--;
-          /* －－－－ 新增：教學模式放置音效（玩家）－－－－ */
-          audio.sfxPlace('blue', mv.size);
+          audio.sfxPlace('blue', mv.size); // 放置音效（玩家）
           stepIndex++; clearHints(); clearTrayGlow(); clearArrow();
           if(checkWin('blue')){ startWinSequence(); unlock(); return; }
           current='orange'; render(); setTimeout(runAIMoveIfAny,450);
@@ -378,8 +544,7 @@ function onCellClick(){
         board[mv.from].pop(); render();
         ghostMove({x:pos.x,y:pos.y},dst,'blue',mv.size,650).then(()=>{
           board[mv.to].push({player:'blue',size:mv.size});
-          /* －－－－ 新增：教學模式移動音效（玩家）－－－－ */
-          audio.sfxMove('blue', mv.size);
+          audio.sfxMove('blue', mv.size); // 移動音效（玩家）
           stepIndex++; movingFromIndex=null; clearHints(); clearArrow();
           if(checkWin('blue')){ startWinSequence(); unlock(); return; }
           current='orange'; render(); setTimeout(runAIMoveIfAny,450);
@@ -401,8 +566,7 @@ function runAIMoveIfAny(){
     ghostMove(dot,dst,'orange',mv.size,600).then(()=>{
       board[mv.to].push({player:'orange',size:mv.size});
       counts.orange[mv.size]--;
-      /* －－－－ 新增：教學模式放置音效（AI）－－－－ */
-      audio.sfxPlace('orange', mv.size);
+      audio.sfxPlace('orange', mv.size); // 放置音效（AI）
       stepIndex++; clearTrayGlow(); clearHints(); clearArrow();
       if(checkWin('orange')){ gameOver=true; render(); alert("橙方勝"); unlock(); return; }
       current='blue'; render(); showNextHint(); unlock();
@@ -412,8 +576,7 @@ function runAIMoveIfAny(){
     board[mv.from].pop(); render();
     ghostMove({x:pos.x,y:pos.y},dst,'orange',mv.size,650).then(()=>{
       board[mv.to].push({player:'orange',size:mv.size});
-      /* －－－－ 新增：教學模式移動音效（AI）－－－－ */
-      audio.sfxMove('orange', mv.size);
+      audio.sfxMove('orange', mv.size); // 移動音效（AI）
       stepIndex++; movingFromIndex=null; clearHints(); clearArrow();
       if(checkWin('orange')){ gameOver=true; render(); alert("橙方勝"); unlock(); return; }
       current='blue'; render(); showNextHint(); unlock();
@@ -426,8 +589,7 @@ function startWinSequence(){
   winLineIdx=getWinningLine('blue'); if(!winLineIdx) return;
   document.body.classList.add('win-spotlight');
   winPulse=new Set(winLineIdx); render();
-  /* －－－－ 新增：教學模式勝利音效（綠方贏）－－－－ */
-  audio.sfxWin();
+  audio.sfxWin(); // 勝利音效
   setTimeout(()=>{ winPulse.clear(); render(); toYCHAndBanners(); }, WIN_DELAY);
 }
 function toYCHAndBanners(){
@@ -501,10 +663,10 @@ const ro=new ResizeObserver(viewportSync);
 ro.observe(document.documentElement); ro.observe(document.body); ro.observe(boardEl);
 layoutArrowLayer(); resetTeaching();
 
-/* －－－－ 互動啟音：為了 iOS/Chrome 自動播放政策，首次點擊/觸控才解鎖 AudioContext －－－－ */
-const unlockAudioOnce = ()=>{
+// 互動解鎖 AudioContext（iOS/Chrome）
+const unlockAudioOnce=()=>{
   audio.ensureCtx();
-  if(audio.ctx && audio.ctx.state === 'suspended'){
+  if(audio.ctx && audio.ctx.state==='suspended'){
     audio.ctx.resume().catch(()=>{});
   }
   window.removeEventListener('pointerdown', unlockAudioOnce);
