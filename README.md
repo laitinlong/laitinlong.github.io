@@ -70,6 +70,10 @@
 .msg.show{opacity:.9}
 .cell:active{transform:scale(0.985)}.tray-btn:active{transform:translateY(0);box-shadow:0 1px 6px rgba(0,0,0,.08)}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}.arrow-path{animation:none!important}.moving-piece,.win-pulse{animation:none!important}}
+/* －－－－ 新增：音效控制（樣式） －－－－ */
+.sound-wrap{display:flex;align-items:center;gap:8px}
+.sound-label{font-size:14px;font-weight:700}
+.volume{width:120px}
 </style>
 </head>
 <body>
@@ -88,6 +92,13 @@
       <button id="restartBtn" class="btn" style="display:none;">重新開始</button>
       <button id="swapBtn" class="btn" style="display:none;">換邊起手</button>
       <button id="modeBtn" class="btn">退出教學模式</button>
+
+      <!-- －－－－ 新增：音效控制 UI（只在教學模式有效） －－－－ -->
+      <div class="sound-wrap">
+        <button id="soundToggleBtn" class="btn" aria-pressed="true" title="切換教學模式音效">🔊 音效：開</button>
+        <label class="sound-label" for="volumeRange" title="音量（僅教學模式）">音量</label>
+        <input id="volumeRange" class="volume" type="range" min="0" max="100" value="70" />
+      </div>
     </div>
   </div>
 
@@ -119,11 +130,72 @@ const boardEl=document.getElementById("board"),turnDot=document.getElementById("
 const restartBtn=document.getElementById("restartBtn"),swapBtn=document.getElementById("swapBtn"),modeBtn=document.getElementById("modeBtn");
 const arrowLayer=document.getElementById('arrowLayer'),arrowPath=document.getElementById('arrowPath'),msgEl=document.getElementById('msg');
 const trayBlue=document.getElementById('trayBlue');
+/* －－－－ 新增：音效控制 DOM －－－－ */
+const soundToggleBtn=document.getElementById('soundToggleBtn');
+const volumeRange=document.getElementById('volumeRange');
 
 let board,counts,current,selectedSize,gameOver;
 let teachingMode=true,stepIndex=0,movingFromIndex=null,pvpSelectedFrom=null;
 let winLetters={},currentArrow=null,ghostAnim=null,winPulse=new Set(),winLineIdx=null;
 
+/* －－－－ 新增：簡易音效引擎（Web Audio API） －－－－ */
+const audio = {
+  ctx: null,
+  enabled: true,   // 教學模式下可用
+  volume: 0.7,
+  ensureCtx(){
+    if(!this.ctx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(AC) this.ctx = new AC();
+    }
+  },
+  now(){ this.ensureCtx(); return this.ctx ? this.ctx.currentTime : 0; },
+  // 建立一次性音符
+  tone({type='sine', freq=440, start=0, dur=0.09, gain=0.5}){
+    if(!this.enabled || !this.ctx) return;
+    const t0 = this.ctx.currentTime + start;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+    // 短包絡避免噪聲
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(gain * this.volume, t0 + 0.01);
+    g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g).connect(this.ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.01);
+  },
+  // 放置音效：單擊，綠方略低音、橙方略高音；尺寸越大音高略低
+  sfxPlace(player, size){
+    if(!teachingMode || !this.enabled) return;
+    this.ensureCtx();
+    const base = (player==='blue') ? 680 : 760;    // 綠 vs 橙
+    const sizeOffset = {1:+60, 2:0, 3:-80}[size] || 0;
+    const freq = base + sizeOffset;
+    this.tone({type:'triangle', freq, dur:0.09, gain:0.6});
+  },
+  // 移動音效：兩段音（起-落），綠方較溫和，橙方明亮
+  sfxMove(player, size){
+    if(!teachingMode || !this.enabled) return;
+    this.ensureCtx();
+    const base = (player==='blue') ? 520 : 600;
+    const sizeOffset = {1:+70, 2:+10, 3:-60}[size] || 0;
+    const f1 = base + sizeOffset;
+    const f2 = f1 - 140;
+    this.tone({type:'sine', freq:f1, dur:0.07, gain:0.55});
+    this.tone({type:'sine', freq:f2, start:0.07, dur:0.08, gain:0.5});
+  },
+  // 勝利音效：三音上行
+  sfxWin(){
+    if(!teachingMode || !this.enabled) return;
+    this.ensureCtx();
+    const seq = [660, 770, 880];
+    seq.forEach((f,i)=> this.tone({type:'square', freq:f, start:i*0.12, dur:0.09, gain:0.5}));
+  }
+};
+
+/* －－－－ 原本教學腳本 －－－－ */
 const SCRIPT=[
   {actor:'blue',type:'place',size:3,to:4},
   {actor:'orange',type:'place',size:3,to:8},
@@ -160,6 +232,21 @@ function resetPVP(start="blue"){ clearWinLettersDOM(); teachingMode=false; modeB
 restartBtn.addEventListener("click",()=>{ if(gameOver) return; if(!teachingMode) resetPVP("blue"); });
 swapBtn.addEventListener("click",()=>{ if(gameOver) return; if(!teachingMode){ current=(current==="blue")?"orange":"blue"; resetPVP(current); hint("已換邊起手："+(current==="blue"?"綠":"橙")); }});
 modeBtn.addEventListener("click",()=>{ teachingMode?resetPVP("blue"):resetTeaching(); });
+
+/* －－－－ 新增：音效 UI 事件 －－－－ */
+soundToggleBtn.addEventListener('click',()=>{
+  audio.enabled = !audio.enabled;
+  soundToggleBtn.setAttribute('aria-pressed', String(audio.enabled));
+  soundToggleBtn.textContent = (audio.enabled ? '🔊 音效：開' : '🔇 音效：關');
+  // 若剛開啟且在教學模式，給個輕提示音
+  if(audio.enabled && teachingMode){
+    try { audio.ensureCtx(); audio.tone({type:'sine', freq:660, dur:0.06, gain:0.4}); } catch(e){}
+  }
+});
+volumeRange.addEventListener('input', (e)=>{
+  const v = Math.max(0, Math.min(100, Number(e.target.value)||0));
+  audio.volume = v/100;
+});
 
 document.querySelectorAll(".tray-btn").forEach(btn=>{
   btn.addEventListener("click",()=>{ if(teachingMode) return; if(gameOver) return;
@@ -275,7 +362,10 @@ function onCellClick(){
         const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn; const dstEl=boardEl.children[mv.to];
         ghostMove(dot,dstEl,'blue',mv.size,600).then(()=>{
           board[mv.to].push({player:'blue',size:mv.size});
-          counts.blue[mv.size]--; stepIndex++; clearHints(); clearTrayGlow(); clearArrow();
+          counts.blue[mv.size]--;
+          /* －－－－ 新增：教學模式放置音效（玩家）－－－－ */
+          audio.sfxPlace('blue', mv.size);
+          stepIndex++; clearHints(); clearTrayGlow(); clearArrow();
           if(checkWin('blue')){ startWinSequence(); unlock(); return; }
           current='orange'; render(); setTimeout(runAIMoveIfAny,450);
         });
@@ -288,6 +378,8 @@ function onCellClick(){
         board[mv.from].pop(); render();
         ghostMove({x:pos.x,y:pos.y},dst,'blue',mv.size,650).then(()=>{
           board[mv.to].push({player:'blue',size:mv.size});
+          /* －－－－ 新增：教學模式移動音效（玩家）－－－－ */
+          audio.sfxMove('blue', mv.size);
           stepIndex++; movingFromIndex=null; clearHints(); clearArrow();
           if(checkWin('blue')){ startWinSequence(); unlock(); return; }
           current='orange'; render(); setTimeout(runAIMoveIfAny,450);
@@ -308,7 +400,10 @@ function runAIMoveIfAny(){
     const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn; const dst=boardEl.children[mv.to];
     ghostMove(dot,dst,'orange',mv.size,600).then(()=>{
       board[mv.to].push({player:'orange',size:mv.size});
-      counts.orange[mv.size]--; stepIndex++; clearTrayGlow(); clearHints(); clearArrow();
+      counts.orange[mv.size]--;
+      /* －－－－ 新增：教學模式放置音效（AI）－－－－ */
+      audio.sfxPlace('orange', mv.size);
+      stepIndex++; clearTrayGlow(); clearHints(); clearArrow();
       if(checkWin('orange')){ gameOver=true; render(); alert("橙方勝"); unlock(); return; }
       current='blue'; render(); showNextHint(); unlock();
     });
@@ -317,6 +412,8 @@ function runAIMoveIfAny(){
     board[mv.from].pop(); render();
     ghostMove({x:pos.x,y:pos.y},dst,'orange',mv.size,650).then(()=>{
       board[mv.to].push({player:'orange',size:mv.size});
+      /* －－－－ 新增：教學模式移動音效（AI）－－－－ */
+      audio.sfxMove('orange', mv.size);
       stepIndex++; movingFromIndex=null; clearHints(); clearArrow();
       if(checkWin('orange')){ gameOver=true; render(); alert("橙方勝"); unlock(); return; }
       current='blue'; render(); showNextHint(); unlock();
@@ -329,6 +426,8 @@ function startWinSequence(){
   winLineIdx=getWinningLine('blue'); if(!winLineIdx) return;
   document.body.classList.add('win-spotlight');
   winPulse=new Set(winLineIdx); render();
+  /* －－－－ 新增：教學模式勝利音效（綠方贏）－－－－ */
+  audio.sfxWin();
   setTimeout(()=>{ winPulse.clear(); render(); toYCHAndBanners(); }, WIN_DELAY);
 }
 function toYCHAndBanners(){
@@ -401,6 +500,19 @@ if(window.visualViewport){
 const ro=new ResizeObserver(viewportSync);
 ro.observe(document.documentElement); ro.observe(document.body); ro.observe(boardEl);
 layoutArrowLayer(); resetTeaching();
+
+/* －－－－ 互動啟音：為了 iOS/Chrome 自動播放政策，首次點擊/觸控才解鎖 AudioContext －－－－ */
+const unlockAudioOnce = ()=>{
+  audio.ensureCtx();
+  if(audio.ctx && audio.ctx.state === 'suspended'){
+    audio.ctx.resume().catch(()=>{});
+  }
+  window.removeEventListener('pointerdown', unlockAudioOnce);
+  window.removeEventListener('keydown', unlockAudioOnce);
+};
+window.addEventListener('pointerdown', unlockAudioOnce, {once:true});
+window.addEventListener('keydown', unlockAudioOnce, {once:true});
+
 })();
 </script>
 </body>
