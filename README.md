@@ -1,11 +1,13 @@
-
+<!doctype html>
 <html lang="zh-Hant">
 <head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <title>超級過三關</title>
 <style>
 :root{--green:#2ecc71;--green-dark:#1b8f4d;--orange:#ff8c00;--board-bg:#f7f7f9;--cell-size:min(22vmin,130px);--gap:10px;--hint:#43a047;--move:#43a047;--arrowPlace:#43a047;--arrowMove:#43a047}
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC","Microsoft JhengHei",Arial,sans-serif;background:linear-gradient(180deg,#fafafa,#f0f2f5);display:flex;min-height:100vh;align-items:center;justify-content:center;padding:16px}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC","Microsoft JhengHei",Arial,sans-serif;background:linear-gradient(180deg,#fafafa,#f0f2f5);display:flex;min-height:100vh;align-items:center;justify-content:center;padding:16px}
 .app{width:100%;max-width:1100px;display:grid;gap:16px;align-items:start;grid-template-columns:1fr minmax(280px,480px) 1fr;grid-template-areas:"header header header" "left board right"}
 @media(max-width:900px){.app{grid-template-columns:1fr;grid-template-areas:"header" "board" "left" "right"}}
 .header{grid-area:header;display:flex;flex-direction:column;align-items:center;gap:8px}
@@ -50,8 +52,7 @@
 .orange-piece::before,.orange-piece::after{content:"";position:absolute;left:50%;top:50%;width:76%;height:12%;background:#d36a00;border-radius:8px;transform-origin:center;box-shadow:0 0 0 4px rgba(255,255,255,.95),0 1px 2px rgba(0,0,0,.2)}
 .orange-piece::before{transform:translate(-50%,-50%) rotate(45deg)}.orange-piece::after{transform:translate(-50%,-50%) rotate(-45deg)}
 .moving-piece{box-shadow:0 0 0 4px rgba(67,160,71,.85),0 0 14px 2px rgba(67,160,71,.45),inset 0 0 0 3px rgba(255,255,255,.7);animation:movingPulse 1.1s ease-in-out infinite}
-@keyframes movingPulse{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.03)}100%{transform:translate(-50%,-50%) scale(1)}
-}
+@keyframes movingPulse{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.03)}100%{transform:translate(-50%,-50%) scale(1)}}
 .win-spotlight .board .piece{opacity:.28;filter:grayscale(.1) saturate(.8)}
 .win-spotlight .board .win-pulse{opacity:1;filter:none}
 .win-pulse{box-shadow:0 0 0 6px rgba(67,160,71,.95),0 0 28px 8px rgba(67,160,71,.55),inset 0 0 0 3px rgba(255,255,255,.9);animation:winGlow .85s ease-in-out infinite}
@@ -70,17 +71,21 @@
 .msg.show{opacity:.9}
 .cell:active{transform:scale(0.985)}.tray-btn:active{transform:translateY(0);box-shadow:0 1px 6px rgba(0,0,0,.08)}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}.arrow-path{animation:none!important}.moving-piece,.win-pulse{animation:none!important}}
-/* －－－－ 音效控制（樣式） －－－－ */
-.sound-wrap{display:flex;align-items:center;gap:8px}
-.sound-label{font-size:14px;font-weight:700}
-.volume{width:120px}
 </style>
 </head>
+
 <body>
-<svg id="arrowLayer" class="arrow-layer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" width="100%" height="100%"><defs>
-<marker id="headPlace" markerWidth="7" markerHeight="7" refX="5.6" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="var(--arrowPlace)"/></marker>
-<marker id="headMove" markerWidth="7" markerHeight="7" refX="5.6" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="var(--arrowMove)"/></marker>
-</defs><path id="arrowPath" class="arrow-path" d="" stroke="transparent" marker-end="url(#headPlace)"></path></svg>
+<svg id="arrowLayer" class="arrow-layer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" width="100%" height="100%">
+  <defs>
+    <marker id="headPlace" markerWidth="7" markerHeight="7" refX="5.6" refY="3.5" orient="auto">
+      <polygon points="0,0 7,3.5 0,7" fill="var(--arrowPlace)"></polygon>
+    </marker>
+    <marker id="headMove" markerWidth="7" markerHeight="7" refX="5.6" refY="3.5" orient="auto">
+      <polygon points="0,0 7,3.5 0,7" fill="var(--arrowMove)"></polygon>
+    </marker>
+  </defs>
+  <path id="arrowPath" class="arrow-path" d="" stroke="transparent" marker-end="url(#headPlace)"></path>
+</svg>
 
 <div class="app">
   <div class="header">
@@ -92,13 +97,7 @@
       <button id="restartBtn" class="btn" style="display:none;">重新開始</button>
       <button id="swapBtn" class="btn" style="display:none;">換邊起手</button>
       <button id="modeBtn" class="btn">退出教學模式</button>
-
-      <!-- 音效控制 UI（只在教學模式有效） -->
-      <div class="sound-wrap">
-        <button id="soundToggleBtn" class="btn" aria-pressed="true" title="切換教學模式音效">🔊 音效：開</button>
-        <label class="sound-label" for="volumeRange" title="音量（僅教學模式）">音量</label>
-        <input id="volumeRange" class="volume" type="range" min="0" max="100" value="70" />
-      </div>
+      <!-- ✅ 已移除：音效控制 UI（開關/音量 bar） -->
     </div>
   </div>
 
@@ -125,13 +124,19 @@
 
 <script>
 (function(){
-const sizeNames={1:"小",2:"中",3:"大"},winLines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]],WIN_DELAY=3000,CONFIRM_DELAY=1000;
-const boardEl=document.getElementById("board"),turnDot=document.getElementById("turnDot"),turnText=document.getElementById("turnText");
-const restartBtn=document.getElementById("restartBtn"),swapBtn=document.getElementById("swapBtn"),modeBtn=document.getElementById("modeBtn");
-const arrowLayer=document.getElementById('arrowLayer'),arrowPath=document.getElementById('arrowPath'),msgEl=document.getElementById('msg');
-const trayBlue=document.getElementById('trayBlue');
-const soundToggleBtn=document.getElementById('soundToggleBtn');
-const volumeRange=document.getElementById('volumeRange');
+const sizeNames={1:"小",2:"中",3:"大"},
+      winLines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]],
+      WIN_DELAY=3000,CONFIRM_DELAY=1000;
+
+const boardEl=document.getElementById("board"),
+      turnDot=document.getElementById("turnDot"),
+      turnText=document.getElementById("turnText");
+const restartBtn=document.getElementById("restartBtn"),
+      swapBtn=document.getElementById("swapBtn"),
+      modeBtn=document.getElementById("modeBtn");
+const arrowLayer=document.getElementById('arrowLayer'),
+      arrowPath=document.getElementById('arrowPath'),
+      msgEl=document.getElementById('msg');
 
 let board,counts,current,selectedSize,gameOver;
 let teachingMode=true,stepIndex=0,movingFromIndex=null,pvpSelectedFrom=null;
@@ -139,14 +144,15 @@ let winLetters={},currentArrow=null,ghostAnim=null,winPulse=new Set(),winLineIdx
 
 /* －－－－ 音效引擎：更有趣的合成音（Web Audio API） －－－－ */
 const audio = {
-  ctx:null, enabled:true, volume:0.7,
+  ctx:null,
+  enabled:true,           // ✅ 保留音效（但不提供 UI 開關）
+  volume:0.7,             // ✅ 固定預設音量（不提供 bar 調整）
   master:null, comp:null, delay:null, delayGain:null, limiter:null,
   ensureCtx(){
     if(!this.ctx){
       const AC=window.AudioContext||window.webkitAudioContext;
       if(!AC) return;
       this.ctx=new AC();
-      // 建立主鏈：DynamicsCompressor -> DelayBus(可回授) -> MasterGain -> destination
       this.master=this.ctx.createGain(); this.master.gain.value=this.volume;
       this.comp=this.ctx.createDynamicsCompressor();
       this.comp.threshold.setValueAtTime(-22,this.ctx.currentTime);
@@ -159,11 +165,10 @@ const audio = {
       this.delay.delayTime.value=0.18;
       this.delayGain=this.ctx.createGain(); this.delayGain.gain.value=0.18;
       this.delay.connect(this.delayGain).connect(this.delay);
-      // 乾濕混音
+
       const delayOut=this.ctx.createGain(); delayOut.gain.value=0.22;
       this.delay.connect(delayOut);
 
-      // 輕微限制器（再一個壓縮）
       this.limiter=this.ctx.createDynamicsCompressor();
       this.limiter.threshold.setValueAtTime(-3,this.ctx.currentTime);
       this.limiter.knee.setValueAtTime(0,this.ctx.currentTime);
@@ -185,18 +190,16 @@ const audio = {
     }
   },
   now(){ this.ensureCtx(); return this.ctx?this.ctx.currentTime:0; },
-  // 公用：建立 ADSR 封包
   applyADSR(g, t0, {a=0.01,d=0.08,s=0.5,r=0.06,peak=0.9}={}){
     g.gain.setValueAtTime(0.0001, t0);
     g.gain.linearRampToValueAtTime(peak, t0 + a);
     g.gain.linearRampToValueAtTime(s*peak, t0 + a + d);
-    return (tRelease)=>{ // 呼叫於釋放時間
+    return (tRelease)=>{
       g.gain.cancelScheduledValues(tRelease);
       g.gain.setValueAtTime(g.gain.value, tRelease);
       g.gain.linearRampToValueAtTime(0.0001, tRelease + r);
     };
   },
-  // 公用：簡單噪聲 BufferSource
   noise(duration=0.2){
     const len=Math.max(1,Math.floor((this.ctx.sampleRate||44100)*duration));
     const buf=this.ctx.createBuffer(1,len,this.ctx.sampleRate);
@@ -205,13 +208,11 @@ const audio = {
     const src=this.ctx.createBufferSource(); src.buffer=buf;
     return src;
   },
-  // 公用：連接到主鏈（含壓縮/延遲 bus）
   toBus(node){
     if(!this.ctx) return;
     node.connect(this.comp);
     node.connect(this.delay);
   },
-  // 效果：輕微濾波掃頻的 whoosh
   whoosh({time=this.now(), dur=0.2, pan=0}={}){
     if(!this.ctx) return;
     const src=this.noise(dur);
@@ -222,11 +223,9 @@ const audio = {
     const p=hasPanner?this.ctx.createStereoPanner():null;
     if(p){ p.pan.value=pan; src.connect(bp).connect(g).connect(p); this.toBus(p); }
     else{ src.connect(bp).connect(g); this.toBus(g); }
-    // 掃頻
     bp.frequency.linearRampToValueAtTime(2200, time + dur*0.7);
     src.start(time); rel(time + dur*0.65); src.stop(time + dur + 0.05);
   },
-  // 效果：敲擊感（短噪聲+高通/帶通）
   click({time=this.now(), freq=1800}={}){
     if(!this.ctx) return;
     const src=this.noise(0.06);
@@ -236,10 +235,8 @@ const audio = {
     src.connect(hp).connect(g); this.toBus(g);
     src.start(time); rel(time+0.04); src.stop(time+0.08);
   },
-  // 音階工具
   noteToFreq(note){ return 440*Math.pow(2,(note-69)/12); },
   pickPentatonic(root, octave, steps){
-    // Major pentatonic: 0,2,4,7,9
     const scale=[0,2,4,7,9];
     return steps.map(s=>{
       const degree=scale[(s%scale.length+scale.length)%scale.length];
@@ -247,7 +244,6 @@ const audio = {
       return root + degree + 12*oct;
     });
   },
-  // 合成：plucky 琶音（兩振盪+低通）
   pluck(freq, {time=this.now(), dur=0.18, detune=0, cutoff=2200, pan=0, gain=0.8, type='triangle'}={}){
     if(!this.ctx) return;
     const osc1=this.ctx.createOscillator(); osc1.type=type; osc1.frequency.setValueAtTime(freq, time); osc1.detune.value=detune;
@@ -258,13 +254,11 @@ const audio = {
     const hasPanner='createStereoPanner' in this.ctx; const p=hasPanner?this.ctx.createStereoPanner():null;
     if(p){ p.pan.value=pan; osc1.connect(lp); osc2.connect(lp); lp.connect(g).connect(p); this.toBus(p); }
     else{ osc1.connect(lp); osc2.connect(lp); lp.connect(g); this.toBus(g); }
-    // 濾波器褪去，讓音頭更清晰
     lp.frequency.exponentialRampToValueAtTime(600, time + dur*0.8);
     osc1.start(time); osc2.start(time);
     release(time + dur*0.75);
     osc1.stop(time + dur + 0.05); osc2.stop(time + dur + 0.05);
   },
-  // 合成：滑音 tone（起音 -> 下滑）
   glide(freqStart, freqEnd, {time=this.now(), dur=0.16, pan=0, gain=0.6, type='sine'}={}){
     if(!this.ctx) return;
     const osc=this.ctx.createOscillator(); osc.type=type; osc.frequency.setValueAtTime(freqStart, time);
@@ -276,7 +270,6 @@ const audio = {
     else{ osc.connect(g); this.toBus(g); }
     osc.start(time); release(time + dur*0.8); osc.stop(time + dur + 0.05);
   },
-  // 合成：和弦（多振盪）簡短
   chord(freqs, {time=this.now(), dur=0.22, pan=0, gain=0.6, type='square'}={}){
     if(!this.ctx) return;
     const g=this.ctx.createGain(); g.gain.value=0.0;
@@ -296,26 +289,20 @@ const audio = {
     oscs.forEach(o=>o.stop(time + dur + 0.05));
   },
 
-  /* 具象事件音效（教學模式用） */
   sfxPlace(player, size){
     if(!teachingMode || !this.enabled) return;
     this.ensureCtx(); if(!this.ctx) return;
     const t=this.now();
-    // 角色根音與音階：綠=D大調五聲；橙=A小調五聲（相異色彩）
-    const root = (player==='blue')? 62 : 57; // MIDI：D4 或 A3
+    const root = (player==='blue')? 62 : 57;
     const octave = (player==='blue')? 1 : 2;
-    // 尺寸影響音高：小→高；大→低
     const sizeShift = ({1:+7,2:+0,3:-5})[size]||0;
     const notes = this.pickPentatonic(root+sizeShift, octave, [0,1,2]);
-    // 小琶音（漸快），帶一點點 echo、pan
     const pan = (player==='blue')? -0.15 : 0.15;
     notes.forEach((n,i)=>{
       const f=this.noteToFreq(n);
       this.pluck(f,{time:t + i*0.055, dur:0.18 - i*0.02, pan, gain:0.72, cutoff:2600, type:'triangle'});
     });
-    // 補一個輕 click 作落子觸地感
     this.click({time: t + 0.03});
-    // 輕微短滑音點綴（從高往目標滑）
     const f0 = this.noteToFreq((notes[1]||root)+12);
     const f1 = this.noteToFreq(notes[1]||root);
     this.glide(f0, f1, {time: t + 0.04, dur:0.12, pan, gain:0.22, type:'sine'});
@@ -324,19 +311,15 @@ const audio = {
     if(!teachingMode || !this.enabled) return;
     this.ensureCtx(); if(!this.ctx) return;
     const t=this.now();
-    // 角色基準
-    const root = (player==='blue')? 50 : 55; // D3 / G3
+    const root = (player==='blue')? 50 : 55;
     const octave = 2;
     const pan = (player==='blue')? -0.22 : 0.22;
     const siz = ({1:+5,2:+0,3:-5})[size]||0;
-    const seq = this.pickPentatonic(root+siz, octave, [1,3,2]); // 上→落
-    // 旋律：第一音較強，後兩音短
+    const seq = this.pickPentatonic(root+siz, octave, [1,3,2]);
     this.pluck(this.noteToFreq(seq[0]), {time:t, dur:0.16, pan, gain:0.7, cutoff:3000, type:'triangle'});
     this.pluck(this.noteToFreq(seq[1]), {time:t+0.09, dur:0.13, pan, gain:0.55, cutoff:2400, type:'triangle'});
     this.pluck(this.noteToFreq(seq[2]), {time:t+0.16, dur:0.12, pan, gain:0.52, cutoff:2200, type:'triangle'});
-    // 小幅 whoosh 營造移動感
     this.whoosh({time:t+0.02, dur:0.22, pan});
-    // 結尾滑落一點
     const fStart=this.noteToFreq(seq[0]+7);
     const fEnd=this.noteToFreq(seq[0]-5);
     this.glide(fStart, fEnd, {time:t+0.05, dur:0.18, pan, gain:0.28, type:'sine'});
@@ -345,15 +328,12 @@ const audio = {
     if(!teachingMode || !this.enabled) return;
     this.ensureCtx(); if(!this.ctx) return;
     const t=this.now();
-    // 簡短三和弦（D大調）：D F# A
-    const tri=[62,66,69].map(n=>this.noteToFreq(n+12)); // 提升一個八度更亮
+    const tri=[62,66,69].map(n=>this.noteToFreq(n+12));
     this.chord(tri,{time:t, dur:0.26, pan:0, gain:0.65, type:'square'});
-    // 上行三音收尾
     const line=[69,71,74].map(n=>this.noteToFreq(n+12));
     this.pluck(line[0],{time:t+0.14, dur:0.16, pan:0.05, gain:0.66, cutoff:3600});
     this.pluck(line[1],{time:t+0.26, dur:0.14, pan:-0.05, gain:0.6, cutoff:3600});
     this.pluck(line[2],{time:t+0.36, dur:0.14, pan:0.08, gain:0.6, cutoff:3600});
-    // 高頻亮片（噪聲+高通）
     const sparkleT=t+0.38;
     const src=this.noise(0.18);
     const hp=this.ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=3200;
@@ -392,46 +372,71 @@ if(!boardEl.children.length){
   }
 }
 
-function resetCommon(){ board=Array.from({length:9},()=>[]); counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}}; selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null; currentArrow=null; clearArrow(); winPulse.clear(); winLineIdx=null; render(); clearHints(); clearTrayGlow(); }
-function clearWinLettersDOM(){ Array.from(boardEl.children).forEach(c=>{ const ov=c.querySelector('.cell-overlay'); if(ov) ov.innerHTML=""; }); winLetters={}; }
+function resetCommon(){
+  board=Array.from({length:9},()=>[]);
+  counts={blue:{1:2,2:2,3:2},orange:{1:2,2:2,3:2}};
+  selectedSize=null; gameOver=false; movingFromIndex=null; pvpSelectedFrom=null;
+  currentArrow=null; clearArrow(); winPulse.clear(); winLineIdx=null;
+  render(); clearHints(); clearTrayGlow();
+}
+function clearWinLettersDOM(){
+  Array.from(boardEl.children).forEach(c=>{
+    const ov=c.querySelector('.cell-overlay'); if(ov) ov.innerHTML="";
+  });
+  winLetters={};
+}
 
-function resetTeaching(){ clearWinLettersDOM(); teachingMode=true; stepIndex=0; modeBtn.textContent="退出教學模式"; restartBtn.style.display="none"; swapBtn.style.display="none"; resetCommon(); current="blue"; render(); showNextHint(); }
-function resetPVP(start="blue"){ clearWinLettersDOM(); teachingMode=false; modeBtn.textContent="開始教學模式"; restartBtn.style.display=""; swapBtn.style.display=""; resetCommon(); current=start; render(); hint("PVP 開始，先手："+(current==="blue"?"綠":"橙")); }
+function resetTeaching(){
+  clearWinLettersDOM();
+  teachingMode=true; stepIndex=0;
+  modeBtn.textContent="退出教學模式";
+  restartBtn.style.display="none"; swapBtn.style.display="none";
+  resetCommon(); current="blue"; render(); showNextHint();
+}
+function resetPVP(start="blue"){
+  clearWinLettersDOM();
+  teachingMode=false;
+  modeBtn.textContent="開始教學模式";
+  restartBtn.style.display=""; swapBtn.style.display="";
+  resetCommon(); current=start; render();
+  hint("PVP 開始，先手："+(current==="blue"?"綠":"橙"));
+}
 
 restartBtn.addEventListener("click",()=>{ if(gameOver) return; if(!teachingMode) resetPVP("blue"); });
 swapBtn.addEventListener("click",()=>{ if(gameOver) return; if(!teachingMode){ current=(current==="blue")?"orange":"blue"; resetPVP(current); hint("已換邊起手："+(current==="blue"?"綠":"橙")); }});
 modeBtn.addEventListener("click",()=>{ teachingMode?resetPVP("blue"):resetTeaching(); });
 
-soundToggleBtn.addEventListener('click',()=>{
-  audio.enabled=!audio.enabled;
-  soundToggleBtn.setAttribute('aria-pressed', String(audio.enabled));
-  soundToggleBtn.textContent = (audio.enabled ? '🔊 音效：開' : '🔇 音效：關');
-  if(audio.enabled && teachingMode){
-    try{ audio.ensureCtx(); audio.pluck(880,{gain:0.25,dur:0.12}); }catch(e){}
-  }
-});
-volumeRange.addEventListener('input',(e)=>{
-  const v=Math.max(0,Math.min(100,Number(e.target.value)||0))/100;
-  audio.setMasterVolume(v);
-});
-
 document.querySelectorAll(".tray-btn").forEach(btn=>{
-  btn.addEventListener("click",()=>{ if(teachingMode) return; if(gameOver) return;
+  btn.addEventListener("click",()=>{
+    if(teachingMode) return;
+    if(gameOver) return;
     const player=btn.dataset.player,size=Number(btn.dataset.size);
     if(player!==current){ hint("唔到你用對家托盤"); return; }
     if(counts[player][size]<=0){ hint("此大小已用完"); return; }
     if(pvpSelectedFrom!==null){ const el=boardEl.children[pvpSelectedFrom]; el&&el.classList.remove('source-cue'); pvpSelectedFrom=null; }
     if(selectedSize===size){ selectedSize=null; clearTrayGlow(); hint("已取消選擇"); return; }
-    selectedSize=size; clearTrayGlow(); btn.classList.add("glow-green","active"); hint("已選："+(current==="blue"?"綠":"橙")+"「"+sizeNames[size]+"」");
+    selectedSize=size; clearTrayGlow(); btn.classList.add("glow-green","active");
+    hint("已選："+(current==="blue"?"綠":"橙")+"「"+sizeNames[size]+"」");
   });
 });
 
 function layoutArrowLayer(){
   const vv=window.visualViewport;
-  if(vv){ arrowLayer.style.width=vv.width+"px"; arrowLayer.style.height=vv.height+"px"; arrowLayer.style.left="0px"; arrowLayer.style.top="0px"; arrowLayer.setAttribute('viewBox',`0 0 ${vv.width} ${vv.height}`);}
-  else{ arrowLayer.style.width="100vw"; arrowLayer.style.height="100vh"; arrowLayer.style.left="0px"; arrowLayer.style.top="0px"; arrowLayer.setAttribute('viewBox',`0 0 ${window.innerWidth} ${window.innerHeight}`);}
+  if(vv){
+    arrowLayer.style.width=vv.width+"px"; arrowLayer.style.height=vv.height+"px";
+    arrowLayer.style.left="0px"; arrowLayer.style.top="0px";
+    arrowLayer.setAttribute('viewBox',`0 0 ${vv.width} ${vv.height}`);
+  }else{
+    arrowLayer.style.width="100vw"; arrowLayer.style.height="100vh";
+    arrowLayer.style.left="0px"; arrowLayer.style.top="0px";
+    arrowLayer.setAttribute('viewBox',`0 0 ${window.innerWidth} ${window.innerHeight}`);
+  }
 }
-function getCenter(el){ if(!el) return null; const r=el.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/2,w:r.width,h:r.height}; }
+function getCenter(el){
+  if(!el) return null;
+  const r=el.getBoundingClientRect();
+  return {x:r.left+r.width/2,y:r.top+r.height/2,w:r.width,h:r.height};
+}
 function offsetEndpoints(aEl,bEl){
   const A=getCenter(aEl),B=getCenter(bEl); if(!A||!B) return null;
   const dx=B.x-A.x,dy=B.y-A.y,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,base=Math.min(A.w||0,B.w||0)||60,off=Math.min(22,base*0.10);
@@ -449,6 +454,7 @@ function drawArrow(aEl,bEl,kind){
   arrowPath.style.opacity='1'; currentArrow={fromEl:aEl,toEl:bEl,kind};
 }
 function clearArrow(){ arrowPath.setAttribute('d',''); arrowPath.style.opacity='0'; currentArrow=null; }
+
 function ghostMove(from,toEl,player,size,dur=650){
   return new Promise(res=>{
     const A=(from&&from.nodeType===1)?getCenter(from):from, B=getCenter(toEl);
@@ -465,11 +471,24 @@ function ghostMove(from,toEl,player,size,dur=650){
     setTimeout(()=>{ ghostAnim=null; g.remove(); res(); }, dur+40);
   });
 }
+
 function topPiece(i){const s=board[i];return s.length?s[s.length-1]:null;}
 function canPlace(player,size,i){const s=board[i],t=s.length?s[s.length-1]:null;return !t||size>t.size;}
-function canMove(player,size,from,to){if(from===to)return false;const ft=topPiece(from);if(!ft||ft.player!==player||ft.size!==size)return false;const tt=topPiece(to);return !tt||size>tt.size;}
+function canMove(player,size,from,to){
+  if(from===to)return false;
+  const ft=topPiece(from);
+  if(!ft||ft.player!==player||ft.size!==size)return false;
+  const tt=topPiece(to);
+  return !tt||size>tt.size;
+}
 function checkWin(p){return winLines.some(line=>line.every(i=>{const t=topPiece(i);return t&&t.player===p;}));}
-function getWinningLine(p){for(const l of winLines){if(l.every(i=>{const t=topPiece(i);return t&&t.player===p;})) return l}return null}
+function getWinningLine(p){
+  for(const l of winLines){
+    if(l.every(i=>{const t=topPiece(i);return t&&t.player===p;})) return l;
+  }
+  return null;
+}
+
 function render(){
   turnDot.className="dot "+(current==="blue"?"blue":"orange");
   turnText.textContent="輪到："+(current==="blue"?"綠":"橙");
@@ -493,13 +512,13 @@ function render(){
     const cb=document.getElementById(`count-blue-${s}`),co=document.getElementById(`count-orange-${s}`);
     if(cb){cb.textContent=`x ${counts.blue[s]}`;cb.classList.toggle("zero",counts.blue[s]===0)}
     if(co){co.textContent=`x ${counts.orange[s]}`;co.classList.toggle("zero",counts.orange[s]===0)}
-  })
+  });
 }
 function clearHints(){Array.from(boardEl.children).forEach(c=>c.classList.remove("hint","hint-move","source-cue"))}
 function clearTrayGlow(){document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("glow-green","active"))}
 function switchTurn(){current=(current==="blue")?"orange":"blue";render()}
 
-function showNextHint(keep=false){
+function showNextHint(){
   clearHints(); clearTrayGlow(); movingFromIndex=null;
   if(!teachingMode||gameOver||stepIndex>=SCRIPT.length){render();clearArrow();return}
   const mv=SCRIPT[stepIndex]; current=mv.actor; render();
@@ -526,11 +545,12 @@ function onCellClick(){
       lock();
       setTimeout(()=>{
         const trayBtn=document.querySelector(`#trayBlue .tray-btn[data-size="${mv.size}"]`);
-        const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn; const dstEl=boardEl.children[mv.to];
+        const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn;
+        const dstEl=boardEl.children[mv.to];
         ghostMove(dot,dstEl,'blue',mv.size,600).then(()=>{
           board[mv.to].push({player:'blue',size:mv.size});
           counts.blue[mv.size]--;
-          audio.sfxPlace('blue', mv.size); // 放置音效（玩家）
+          audio.sfxPlace('blue', mv.size);
           stepIndex++; clearHints(); clearTrayGlow(); clearArrow();
           if(checkWin('blue')){ startWinSequence(); unlock(); return; }
           current='orange'; render(); setTimeout(runAIMoveIfAny,450);
@@ -544,7 +564,7 @@ function onCellClick(){
         board[mv.from].pop(); render();
         ghostMove({x:pos.x,y:pos.y},dst,'blue',mv.size,650).then(()=>{
           board[mv.to].push({player:'blue',size:mv.size});
-          audio.sfxMove('blue', mv.size); // 移動音效（玩家）
+          audio.sfxMove('blue', mv.size);
           stepIndex++; movingFromIndex=null; clearHints(); clearArrow();
           if(checkWin('blue')){ startWinSequence(); unlock(); return; }
           current='orange'; render(); setTimeout(runAIMoveIfAny,450);
@@ -562,11 +582,12 @@ function runAIMoveIfAny(){
   showNextHint(true);
   if(mv.type==='place'){
     const trayBtn=[...document.querySelectorAll('#trayOrange .tray-btn')].find(b=>Number(b.dataset.size)===mv.size);
-    const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn; const dst=boardEl.children[mv.to];
+    const dot=trayBtn?trayBtn.querySelector('.mini'):trayBtn;
+    const dst=boardEl.children[mv.to];
     ghostMove(dot,dst,'orange',mv.size,600).then(()=>{
       board[mv.to].push({player:'orange',size:mv.size});
       counts.orange[mv.size]--;
-      audio.sfxPlace('orange', mv.size); // 放置音效（AI）
+      audio.sfxPlace('orange', mv.size);
       stepIndex++; clearTrayGlow(); clearHints(); clearArrow();
       if(checkWin('orange')){ gameOver=true; render(); alert("橙方勝"); unlock(); return; }
       current='blue'; render(); showNextHint(); unlock();
@@ -576,7 +597,7 @@ function runAIMoveIfAny(){
     board[mv.from].pop(); render();
     ghostMove({x:pos.x,y:pos.y},dst,'orange',mv.size,650).then(()=>{
       board[mv.to].push({player:'orange',size:mv.size});
-      audio.sfxMove('orange', mv.size); // 移動音效（AI）
+      audio.sfxMove('orange', mv.size);
       stepIndex++; movingFromIndex=null; clearHints(); clearArrow();
       if(checkWin('orange')){ gameOver=true; render(); alert("橙方勝"); unlock(); return; }
       current='blue'; render(); showNextHint(); unlock();
@@ -589,9 +610,10 @@ function startWinSequence(){
   winLineIdx=getWinningLine('blue'); if(!winLineIdx) return;
   document.body.classList.add('win-spotlight');
   winPulse=new Set(winLineIdx); render();
-  audio.sfxWin(); // 勝利音效
+  audio.sfxWin();
   setTimeout(()=>{ winPulse.clear(); render(); toYCHAndBanners(); }, WIN_DELAY);
 }
+
 function toYCHAndBanners(){
   document.body.classList.remove('win-spotlight');
   const winSet=new Set(winLineIdx);
@@ -624,7 +646,8 @@ function handlePVP(index){
   const tp=topPiece(index);
   if(selectedSize!==null){
     if(!canPlace(current,selectedSize,index)){ hint("不能覆蓋同等或更大"); return; }
-    board[index].push({player:current,size:selectedSize}); counts[current][selectedSize]--; selectedSize=null; clearTrayGlow(); render();
+    board[index].push({player:current,size:selectedSize}); counts[current][selectedSize]--;
+    selectedSize=null; clearTrayGlow(); render();
     if(checkWin(current)){ alert((current==='blue'?'綠':'橙')+'方勝'); gameOver=true; return; }
     switchTurn(); return;
   }
@@ -633,7 +656,9 @@ function handlePVP(index){
     if(tp.player!==current){ hint("唔到你移對家棋"); return; }
     pvpSelectedFrom=index; boardEl.children[index].classList.add('source-cue'); return;
   }
-  if(index===pvpSelectedFrom){ boardEl.children[index].classList.remove('source-cue'); pvpSelectedFrom=null; hint("已取消選擇"); return; }
+  if(index===pvpSelectedFrom){
+    boardEl.children[index].classList.remove('source-cue'); pvpSelectedFrom=null; hint("已取消選擇"); return;
+  }
   const fromTop=topPiece(pvpSelectedFrom);
   if(!fromTop){ pvpSelectedFrom=null; clearHints(); return; }
   if(!canMove(current,fromTop.size,pvpSelectedFrom,index)){ hint("移動不合法（只能大吃小）"); return; }
@@ -661,9 +686,11 @@ if(window.visualViewport){
 }
 const ro=new ResizeObserver(viewportSync);
 ro.observe(document.documentElement); ro.observe(document.body); ro.observe(boardEl);
-layoutArrowLayer(); resetTeaching();
 
-// 互動解鎖 AudioContext（iOS/Chrome）
+layoutArrowLayer();
+resetTeaching();
+
+/* ✅ 互動解鎖 AudioContext（iOS/Chrome） */
 const unlockAudioOnce=()=>{
   audio.ensureCtx();
   if(audio.ctx && audio.ctx.state==='suspended'){
