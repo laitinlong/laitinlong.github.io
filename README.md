@@ -15,8 +15,8 @@
   --cell-size: clamp(140px, 24vmin, 240px);
   --gap:12px;
 
-  /* ✅ 左右托盤欄位更窄（你想再窄：改 150 / 140 / 130） */
-  --tray-col: 160px;
+  /* ✅ 左右托盤欄位更窄（減少空位，讓棋盤更大） */
+  --tray-col: 170px;
 
   --hint:#43a047;
   --move:#43a047;
@@ -31,33 +31,24 @@
 }
 
 *{box-sizing:border-box}
-html,body{height:100%}
 body{
   margin:0;
   font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC","Microsoft JhengHei",Arial,sans-serif;
   background:linear-gradient(180deg,#fafafa,#f0f2f5);
-
-  /* ✅ 兩邊只留極少空間 */
-  padding:4px;
-
   display:flex;
   min-height:100vh;
   align-items:center;
   justify-content:center;
-
-  /* ✅ 防止有水平捲軸（極窄邊距時更安全） */
-  overflow-x:hidden;
+  padding:14px;
 }
 
-/* ✅ 版面：滿版（左右空白極少） */
+/* ✅ 版面：左右更窄，中間更大 */
 .app{
   width:100%;
-  max-width:100vw;       /* ⭐關鍵：不再限制 1400px */
+  max-width:1400px;
   display:grid;
-  gap:10px;              /* 也略減少 */
+  gap:14px;
   align-items:start;
-
-  /* 左右更窄，中間更大 */
   grid-template-columns: var(--tray-col) 1fr var(--tray-col);
   grid-template-areas:
     "header header header"
@@ -66,7 +57,6 @@ body{
 
 /* ✅ 手機：變單欄 */
 @media (max-width:900px){
-  body{ padding:6px; } /* 手機留少少，避免貼邊難按 */
   .app{
     grid-template-columns:1fr;
     grid-template-areas:
@@ -102,10 +92,7 @@ body{
 .tray{
   grid-area:left;
   background:#fff;border:1px solid #e6e6e6;border-radius:14px;
-
-  /* ⭐縮窄：padding 再細少少 */
-  padding:8px;
-
+  padding:10px;
   box-shadow:0 6px 16px rgba(0,0,0,.06);
 }
 .right{grid-area:right}
@@ -114,16 +101,16 @@ body{
 .tray-grid{
   display:grid;
   grid-template-columns:1fr;
-  gap:8px; /* 再細少少 */
+  gap:10px;
 }
 .tray-btn{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:6px;
-  padding:8px 6px;
+  padding:9px 6px;
   cursor:pointer;
   border-radius:12px;border:1px solid #ddd;background:#fafafa;
   transition:.15s;
-  min-height:74px;
+  min-height:78px;
   text-align:center;
 }
 .tray-btn:hover{background:#f5f5f5;transform:translateY(-1px)}
@@ -131,12 +118,12 @@ body{
 
 .mini{
   position:relative;border-radius:50%;
-  width:34px;height:34px;
+  width:36px;height:36px;
   box-shadow:0 3px 8px rgba(0,0,0,.15),inset 0 0 0 3px rgba(255,255,255,.65)
 }
-.mini.size-1{width:25px;height:25px}
-.mini.size-2{width:30px;height:30px}
-.mini.size-3{width:34px;height:34px}
+.mini.size-1{width:26px;height:26px}
+.mini.size-2{width:32px;height:32px}
+.mini.size-3{width:36px;height:36px}
 .mini.blue{background:var(--green);border:2px solid var(--green-dark)}
 .mini.orange{background:var(--orange);border:2px solid #d36a00}
 .mini-badge{
@@ -401,7 +388,6 @@ let board,counts,current,selectedSize,gameOver;
 let teachingMode=true,stepIndex=0,pvpSelectedFrom=null;
 let winLetters={},currentArrow=null,ghostAnim=null,winPulse=new Set(),winLineIdx=null;
 
-/* －－－－ 音效（保留）－－－－ */
 const audio = {
   ctx:null, enabled:true, volume:0.7,
   master:null, comp:null, delay:null, delayGain:null, limiter:null,
@@ -525,7 +511,7 @@ const audio = {
   }
 };
 
-/* －－－－ AI對戰腳本 －－－－ */
+/* －－－－ AI對戰腳本（原教學腳本） －－－－ */
 const SCRIPT=[
   {actor:'blue',type:'place',size:3,to:4},
   {actor:'orange',type:'place',size:3,to:8},
@@ -601,7 +587,7 @@ document.querySelectorAll(".tray-btn").forEach(btn=>{
   });
 });
 
-/* 箭咀/幽靈路徑：元素中心點 */
+/* ✅ 箭咀/幽靈路徑：用元素中心點，自動跟隨新布局 */
 function layoutArrowLayer(){
   const vv=window.visualViewport;
   if(vv){
@@ -659,7 +645,7 @@ function ghostMove(from,toEl,player,size,dur=650){
   });
 }
 
-/* 規則 */
+/* 遊戲規則 */
 function topPiece(i){const s=board[i];return s.length?s[s.length-1]:null;}
 function canPlace(player,size,i){const t=topPiece(i);return !t||size>t.size;}
 function canMove(player,size,from,to){
@@ -733,21 +719,27 @@ let uiLocked=false;
 function lock(){ uiLocked=true; document.body.style.pointerEvents='none'; }
 function unlock(){ uiLocked=false; document.body.style.pointerEvents='auto'; }
 
-/* ✅ 空白鍵 = 點棋盤（只在 AI對戰模式、輪到藍方時） */
+/* ✅ 新增：空白鍵 = 點棋盤左鍵（AI對戰模式時） */
 function canTriggerAiStep(){
-  if(!teachingMode) return false;
+  if(!teachingMode) return false;          // 只 AI對戰模式
   if(gameOver) return false;
   if(uiLocked) return false;
   const mv=SCRIPT[stepIndex];
   if(!mv) return false;
-  return mv.actor==='blue';
+  return mv.actor === 'blue';             // 只輪到藍方（玩家）時
 }
-window.addEventListener('keydown',(e)=>{
-  if(e.code!=='Space') return;
+window.addEventListener('keydown', (e)=>{
+  if(e.code !== 'Space') return;
+
+  // 避免按 space 造成頁面滾動 / 點到按鈕的 default 行為
   e.preventDefault();
+
+  // 如焦點在輸入框/按鈕上，仍允許（你要更嚴格可在此排除）
   if(!canTriggerAiStep()) return;
+
+  // AI模式下，你原本點任何格都會做同一個步驟，所以傳 0 即可
   onCellClick(0);
-},{passive:false});
+}, {passive:false});
 
 function onCellClick(i){
   if(gameOver) return;
@@ -855,7 +847,8 @@ function toYCHAndBanners(){
   }
   render();
 
-  const pts=winLineIdx.map(i=>({i,...getCenter(boardEl.children[i])})).filter(p=>p.x!=null);
+  const pts=winLineIdx.map(i=>({i,...getCenter(boardEl.children[i])}))
+    .filter(p=>p.x!=null);
   pts.sort((a,b)=>a.x!==b.x?(a.x-b.x):(a.y-b.y));
 
   const letters=["Y","C","H"];
