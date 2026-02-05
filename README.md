@@ -24,7 +24,7 @@
   --arrowMove:#43a047;
 
   /* 棋盤下面空間 */
-  --board-bottom-space: 90px;
+  --board-bottom-space: 300px;
 
   /* ✅ Y C H 字體幾乎等於一格 */
   --win-letter-scale: 0.92;
