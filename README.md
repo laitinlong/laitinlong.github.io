@@ -21,7 +21,7 @@
   --arrowMove:#43a047;
 
   /* ✅ 新增：棋盤下面要留幾多空間（你只改呢個數就得） */
-  --board-bottom-space: 90px;
+  --board-bottom-space: 200px;
 }
 
 *{box-sizing:border-box}
