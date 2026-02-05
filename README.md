@@ -24,7 +24,7 @@
   --arrowMove:#43a047;
 
   /* 棋盤下面空間 */
-  --board-bottom-space: 300px;
+  --board-bottom-space: 200px;
 
   /* ✅ Y C H 字體幾乎等於一格 */
   --win-letter-scale: 0.92;
@@ -55,7 +55,7 @@ body{
     "left board right";
 }
 
-/* ✅ 手機：變單欄（保留你原本結構） */
+/* ✅ 手機：變單欄 */
 @media (max-width:900px){
   .app{
     grid-template-columns:1fr;
@@ -88,7 +88,7 @@ body{
 .btn:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.08)}
 .btn:active{transform:translateY(1px)}
 
-/* ✅ 托盤更窄、更精簡 */
+/* ✅ 托盤更窄 */
 .tray{
   grid-area:left;
   background:#fff;border:1px solid #e6e6e6;border-radius:14px;
@@ -388,7 +388,6 @@ let board,counts,current,selectedSize,gameOver;
 let teachingMode=true,stepIndex=0,pvpSelectedFrom=null;
 let winLetters={},currentArrow=null,ghostAnim=null,winPulse=new Set(),winLineIdx=null;
 
-/* －－－－ 音效引擎（保留）－－－－ */
 const audio = {
   ctx:null, enabled:true, volume:0.7,
   master:null, comp:null, delay:null, delayGain:null, limiter:null,
@@ -720,6 +719,28 @@ let uiLocked=false;
 function lock(){ uiLocked=true; document.body.style.pointerEvents='none'; }
 function unlock(){ uiLocked=false; document.body.style.pointerEvents='auto'; }
 
+/* ✅ 新增：空白鍵 = 點棋盤左鍵（AI對戰模式時） */
+function canTriggerAiStep(){
+  if(!teachingMode) return false;          // 只 AI對戰模式
+  if(gameOver) return false;
+  if(uiLocked) return false;
+  const mv=SCRIPT[stepIndex];
+  if(!mv) return false;
+  return mv.actor === 'blue';             // 只輪到藍方（玩家）時
+}
+window.addEventListener('keydown', (e)=>{
+  if(e.code !== 'Space') return;
+
+  // 避免按 space 造成頁面滾動 / 點到按鈕的 default 行為
+  e.preventDefault();
+
+  // 如焦點在輸入框/按鈕上，仍允許（你要更嚴格可在此排除）
+  if(!canTriggerAiStep()) return;
+
+  // AI模式下，你原本點任何格都會做同一個步驟，所以傳 0 即可
+  onCellClick(0);
+}, {passive:false});
+
 function onCellClick(i){
   if(gameOver) return;
 
@@ -890,7 +911,7 @@ function hint(t){
   hint._t=setTimeout(()=>msgEl.classList.remove('show'),1400);
 }
 
-/* ✅ 強化：布局改變時，箭咀/幽靈跟隨 */
+/* ✅ 布局改變時，箭咀/幽靈跟隨 */
 function redrawArrowIfAny(){
   if(!currentArrow) return;
   const {fromEl,toEl,kind}=currentArrow;
