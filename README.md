@@ -1,4 +1,4 @@
-<!doctype html>
+
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8"/>
@@ -11,82 +11,63 @@
   --orange:#ff8c00;
   --board-bg:#f7f7f9;
 
-  /* ✅ 兩邊留極少空間（改呢個即可） */
-  --page-pad: 4px;
-
-  /* ✅ 棋盤更大 */
+  /* ✅ 棋盤更大：大屏更大，小屏仍安全 */
   --cell-size: clamp(140px, 24vmin, 240px);
   --gap:12px;
 
-  /* ✅ 托盤欄寬（想再窄可改 150 / 140） */
-  --tray-col: 160px;
+  /* ✅ 左右托盤欄位更窄（減少空位，讓棋盤更大） */
+  --tray-col: 170px;
 
   --hint:#43a047;
   --move:#43a047;
   --arrowPlace:#43a047;
   --arrowMove:#43a047;
 
+  /* 棋盤下面空間 */
   --board-bottom-space: 90px;
 
-  /* ✅ Y C H 字體接近一格 */
+  /* ✅ Y C H 字體幾乎等於一格 */
   --win-letter-scale: 0.92;
 }
 
 *{box-sizing:border-box}
-html,body{height:100%}
-
-/* ✅ 重點：穩定 scrollbar gutter，避免全螢幕左右偏差 */
-html{
-  scrollbar-gutter: stable both-edges;
-}
-
 body{
   margin:0;
   font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC","Microsoft JhengHei",Arial,sans-serif;
   background:linear-gradient(180deg,#fafafa,#f0f2f5);
-
-  padding: var(--page-pad);
-
   display:flex;
   min-height:100vh;
   align-items:center;
   justify-content:center;
-
-  overflow-x:hidden;
+  padding:14px;
 }
 
-/* ✅ 重點：不要用 100vw（會計入 scrollbar），改用可控的計算寬度，左右必定對稱 */
+/* ✅ 版面：左右更窄，中間更大 */
 .app{
-  width: calc(100% - (var(--page-pad) * 2));
-  max-width: calc(100% - (var(--page-pad) * 2));
-  margin: 0 auto;
-
+  width:100%;
+  max-width:1400px;
   display:grid;
-  gap:10px;
+  gap:14px;
   align-items:start;
-
   grid-template-columns: var(--tray-col) 1fr var(--tray-col);
   grid-template-areas:
     "header header header"
     "left board right";
 }
 
-/* ✅ 手機：單欄 */
+/* ✅ 手機：變單欄 */
 @media (max-width:900px){
-  :root{
-    --page-pad: 6px;
-    --board-bottom-space: 110px;
-    --cell-size: clamp(120px, 28vmin, 190px);
-  }
   .app{
-    width: calc(100% - (var(--page-pad) * 2));
-    max-width: calc(100% - (var(--page-pad) * 2));
     grid-template-columns:1fr;
     grid-template-areas:
       "header"
       "board"
       "left"
       "right";
+  }
+  :root{
+    --board-bottom-space: 110px;
+    --cell-size: clamp(120px, 28vmin, 190px);
   }
 }
 
@@ -107,34 +88,42 @@ body{
 .btn:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.08)}
 .btn:active{transform:translateY(1px)}
 
-/* 托盤 */
+/* ✅ 托盤更窄 */
 .tray{
   grid-area:left;
   background:#fff;border:1px solid #e6e6e6;border-radius:14px;
-  padding:8px;
+  padding:10px;
   box-shadow:0 6px 16px rgba(0,0,0,.06);
 }
 .right{grid-area:right}
 
 /* 托盤直排 */
-.tray-grid{display:grid;grid-template-columns:1fr;gap:8px}
+.tray-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
 .tray-btn{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:6px;padding:8px 6px;cursor:pointer;
+  gap:6px;
+  padding:9px 6px;
+  cursor:pointer;
   border-radius:12px;border:1px solid #ddd;background:#fafafa;
-  transition:.15s;min-height:74px;text-align:center
+  transition:.15s;
+  min-height:78px;
+  text-align:center;
 }
 .tray-btn:hover{background:#f5f5f5;transform:translateY(-1px)}
 .tray-btn.active{border-color:#888;box-shadow:0 4px 12px rgba(0,0,0,.08);background:#fff}
 
 .mini{
   position:relative;border-radius:50%;
-  width:34px;height:34px;
+  width:36px;height:36px;
   box-shadow:0 3px 8px rgba(0,0,0,.15),inset 0 0 0 3px rgba(255,255,255,.65)
 }
-.mini.size-1{width:25px;height:25px}
-.mini.size-2{width:30px;height:30px}
-.mini.size-3{width:34px;height:34px}
+.mini.size-1{width:26px;height:26px}
+.mini.size-2{width:32px;height:32px}
+.mini.size-3{width:36px;height:36px}
 .mini.blue{background:var(--green);border:2px solid var(--green-dark)}
 .mini.orange{background:var(--orange);border:2px solid #d36a00}
 .mini-badge{
@@ -251,7 +240,7 @@ body{
   user-select:none;z-index:3
 }
 
-/* Y C H 文字 */
+/* ✅ Y C H 文字：接近一格大 */
 .win-letter,.win-letter-still{
   position:absolute;left:50%;top:50%;
   transform:translate(-50%,-50%);
@@ -259,7 +248,10 @@ body{
   color:#16a34a;
   line-height:1;
   font-size: calc(var(--cell-size) * var(--win-letter-scale));
-  text-shadow: 0 2px 0 #fff, 0 0 12px rgba(22,163,74,.55), 0 0 22px rgba(22,163,74,.35);
+  text-shadow:
+    0 2px 0 #fff,
+    0 0 12px rgba(22,163,74,.55),
+    0 0 22px rgba(22,163,74,.35);
   pointer-events:none;
   z-index:30;
 }
@@ -396,7 +388,6 @@ let board,counts,current,selectedSize,gameOver;
 let teachingMode=true,stepIndex=0,pvpSelectedFrom=null;
 let winLetters={},currentArrow=null,ghostAnim=null,winPulse=new Set(),winLineIdx=null;
 
-/* 音效（保留） */
 const audio = {
   ctx:null, enabled:true, volume:0.7,
   master:null, comp:null, delay:null, delayGain:null, limiter:null,
@@ -520,7 +511,7 @@ const audio = {
   }
 };
 
-/* AI對戰腳本 */
+/* －－－－ AI對戰腳本（原教學腳本） －－－－ */
 const SCRIPT=[
   {actor:'blue',type:'place',size:3,to:4},
   {actor:'orange',type:'place',size:3,to:8},
@@ -596,7 +587,7 @@ document.querySelectorAll(".tray-btn").forEach(btn=>{
   });
 });
 
-/* 箭咀/幽靈路徑 */
+/* ✅ 箭咀/幽靈路徑：用元素中心點，自動跟隨新布局 */
 function layoutArrowLayer(){
   const vv=window.visualViewport;
   if(vv){
@@ -654,7 +645,7 @@ function ghostMove(from,toEl,player,size,dur=650){
   });
 }
 
-/* 規則 */
+/* 遊戲規則 */
 function topPiece(i){const s=board[i];return s.length?s[s.length-1]:null;}
 function canPlace(player,size,i){const t=topPiece(i);return !t||size>t.size;}
 function canMove(player,size,from,to){
@@ -706,7 +697,7 @@ function clearHints(){Array.from(boardEl.children).forEach(c=>c.classList.remove
 function clearTrayGlow(){document.querySelectorAll(".tray-btn").forEach(b=>b.classList.remove("glow-green","active"))}
 function switchTurn(){current=(current==="blue")?"orange":"blue";render()}
 
-/* AI 提示 */
+/* AI 對戰提示 */
 function showNextHint(){
   clearHints(); clearTrayGlow();
   if(!teachingMode||gameOver||stepIndex>=SCRIPT.length){render();clearArrow();return}
@@ -728,21 +719,27 @@ let uiLocked=false;
 function lock(){ uiLocked=true; document.body.style.pointerEvents='none'; }
 function unlock(){ uiLocked=false; document.body.style.pointerEvents='auto'; }
 
-/* 空白鍵 = 點棋盤（AI模式、輪到藍方） */
+/* ✅ 新增：空白鍵 = 點棋盤左鍵（AI對戰模式時） */
 function canTriggerAiStep(){
-  if(!teachingMode) return false;
+  if(!teachingMode) return false;          // 只 AI對戰模式
   if(gameOver) return false;
   if(uiLocked) return false;
   const mv=SCRIPT[stepIndex];
   if(!mv) return false;
-  return mv.actor==='blue';
+  return mv.actor === 'blue';             // 只輪到藍方（玩家）時
 }
-window.addEventListener('keydown',(e)=>{
-  if(e.code!=='Space') return;
+window.addEventListener('keydown', (e)=>{
+  if(e.code !== 'Space') return;
+
+  // 避免按 space 造成頁面滾動 / 點到按鈕的 default 行為
   e.preventDefault();
+
+  // 如焦點在輸入框/按鈕上，仍允許（你要更嚴格可在此排除）
   if(!canTriggerAiStep()) return;
+
+  // AI模式下，你原本點任何格都會做同一個步驟，所以傳 0 即可
   onCellClick(0);
-},{passive:false});
+}, {passive:false});
 
 function onCellClick(i){
   if(gameOver) return;
@@ -850,7 +847,8 @@ function toYCHAndBanners(){
   }
   render();
 
-  const pts=winLineIdx.map(i=>({i,...getCenter(boardEl.children[i])})).filter(p=>p.x!=null);
+  const pts=winLineIdx.map(i=>({i,...getCenter(boardEl.children[i])}))
+    .filter(p=>p.x!=null);
   pts.sort((a,b)=>a.x!==b.x?(a.x-b.x):(a.y-b.y));
 
   const letters=["Y","C","H"];
@@ -913,7 +911,7 @@ function hint(t){
   hint._t=setTimeout(()=>msgEl.classList.remove('show'),1400);
 }
 
-/* 版面變動時同步箭咀/幽靈 */
+/* ✅ 布局改變時，箭咀/幽靈跟隨 */
 function redrawArrowIfAny(){
   if(!currentArrow) return;
   const {fromEl,toEl,kind}=currentArrow;
@@ -945,7 +943,7 @@ ro.observe(document.documentElement); ro.observe(document.body); ro.observe(boar
 layoutArrowLayer();
 resetTeaching();
 
-/* 解鎖 AudioContext */
+/* ✅ 解鎖 AudioContext（iOS/Chrome） */
 const unlockAudioOnce=()=>{
   audio.ensureCtx();
   if(audio.ctx && audio.ctx.state==='suspended'){
@@ -961,4 +959,3 @@ window.addEventListener('keydown', unlockAudioOnce, {once:true});
 </script>
 </body>
 </html>
-``
